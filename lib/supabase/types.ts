@@ -24,6 +24,18 @@ export interface Medication {
   notes: string | null;
   color: string;
   active: boolean;
+  start_date: string | null;
+  created_at: string;
+}
+
+export interface BloodPressureLog {
+  id: string;
+  log_date: string;
+  log_time: string;
+  systolic: number;
+  diastolic: number;
+  pulse: number | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -202,6 +214,7 @@ export interface Database {
       workout_sessions: TableDef<WorkoutSession>;
       exercise_logs: TableDef<ExerciseLog>;
       weight_history: TableDef<WeightHistory>;
+      blood_pressure_logs: TableDef<BloodPressureLog>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

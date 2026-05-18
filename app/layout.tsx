@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import InstallBanner from "@/components/InstallBanner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="bg-bg text-gray-200 min-h-dvh">
         <main className="mx-auto max-w-md pb-24">{children}</main>
         <BottomNav />
+        <InstallBanner />
       </body>
     </html>
   );

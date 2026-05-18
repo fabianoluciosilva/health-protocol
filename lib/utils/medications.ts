@@ -6,24 +6,26 @@ export interface ScheduleSlot {
   slotKey: string;
 }
 
-const DEPOSTERON_START = new Date("2026-05-18T00:00:00");
-
 export function getTodaySchedule(medications: Medication[], date: Date): ScheduleSlot[] {
   const dayOfWeek = date.getDay() + 1;
+  const today = new Date(date);
+  today.setHours(0, 0, 0, 0);
+  const todayStr = formatDateISO(today);
   const slots: ScheduleSlot[] = [];
 
   for (const med of medications) {
     if (!med.active) continue;
+    if (med.start_date && med.start_date > todayStr) continue;
 
     let include = false;
     if (med.frequency === "daily") include = true;
     else if (med.frequency === "weekly") include = med.week_day === dayOfWeek;
     else if (med.frequency === "every_10_days") {
-      const today = new Date(date);
-      today.setHours(0, 0, 0, 0);
-      const diffDays = Math.floor(
-        (today.getTime() - DEPOSTERON_START.getTime()) / 86_400_000
-      );
+      const startStr = med.start_date ?? "2026-05-19";
+      const [sy, sm, sd] = startStr.split("-").map(Number);
+      const startDate = new Date(sy, sm - 1, sd);
+      startDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((today.getTime() - startDate.getTime()) / 86_400_000);
       include = diffDays >= 0 && diffDays % 10 === 0;
     }
 
@@ -123,4 +125,18 @@ export function logKey(medId: string, time: string) {
 export function findLog(logs: MedicationLog[], medId: string, time: string): MedicationLog | undefined {
   const t = time.slice(0, 5);
   return logs.find((l) => l.medication_id === medId && l.scheduled_time.slice(0, 5) === t);
+}
+
+export function getUpcomingMedications(medications: Medication[], date: Date): Medication[] {
+  const todayStr = formatDateISO(date);
+  return medications.filter((m) => m.active && m.start_date && m.start_date > todayStr);
+}
+
+export function daysUntil(dateStr: string, from: Date): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const target = new Date(y, m - 1, d);
+  target.setHours(0, 0, 0, 0);
+  const fromDay = new Date(from);
+  fromDay.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - fromDay.getTime()) / 86_400_000);
 }

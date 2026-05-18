@@ -6,6 +6,7 @@ import ProfileSummary from "@/components/medications/ProfileSummary";
 import WaterCounter from "@/components/medications/WaterCounter";
 import MondayAlert from "@/components/medications/MondayAlert";
 import DailyTimeline from "@/components/medications/DailyTimeline";
+import BloodPressureCard from "@/components/medications/BloodPressureCard";
 import { useProfile } from "@/hooks/useProfile";
 import { useMedications } from "@/hooks/useMedications";
 import { getTodaySchedule } from "@/lib/utils/medications";
@@ -32,6 +33,8 @@ export default function MedicationsPage() {
       {showMondayAlert && <MondayAlert count={todaySlots.length} />}
 
       <WaterCounter />
+
+      <BloodPressureCard />
 
       <DailyTimeline />
     </div>
