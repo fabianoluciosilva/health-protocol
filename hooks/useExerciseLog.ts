@@ -72,8 +72,8 @@ export function useLastWeight(exerciseId: string | undefined) {
       .order("log_date", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => {
-        setLastWeight(data ? (data as WeightHistory).weight_kg : null);
+      .then(({ data }: { data: WeightHistory | null }) => {
+        setLastWeight(data ? data.weight_kg : null);
       });
   }, [supabase, exerciseId]);
 
