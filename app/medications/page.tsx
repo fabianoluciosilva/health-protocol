@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import Header from "@/components/medications/Header";
 import ProfileSummary from "@/components/medications/ProfileSummary";
-import WaterCounter from "@/components/medications/WaterCounter";
 import MondayAlert from "@/components/medications/MondayAlert";
 import DailyTimeline from "@/components/medications/DailyTimeline";
 import BloodPressureCard from "@/components/medications/BloodPressureCard";
@@ -31,8 +30,6 @@ export default function MedicationsPage() {
       {profile && <ProfileSummary profile={profile} />}
 
       {showMondayAlert && <MondayAlert count={todaySlots.length} />}
-
-      <WaterCounter />
 
       <BloodPressureCard />
 
