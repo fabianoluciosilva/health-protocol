@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Pill, FlaskConical, User } from "lucide-react";
+import { Pill, Salad, Dumbbell } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const items = [
   { href: "/medications", label: "Medicamentos", icon: Pill },
-  { href: "/medications/exams", label: "Exames", icon: FlaskConical },
-  { href: "/profile", label: "Perfil", icon: User },
+  { href: "/nutrition", label: "Nutrição", icon: Salad },
+  { href: "/workout", label: "Musculação", icon: Dumbbell },
 ];
 
 export default function BottomNav() {
@@ -18,7 +18,10 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-bg-elevated bg-bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2">
         {items.map((item) => {
-          const active = pathname === item.href || (item.href !== "/profile" && pathname.startsWith(item.href) && item.href !== "/medications") || pathname === item.href;
+          const active =
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/") ||
+            (item.href === "/medications" && pathname.startsWith("/profile"));
           const Icon = item.icon;
           return (
             <Link
@@ -30,7 +33,9 @@ export default function BottomNav() {
               )}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
-              <span className={cn("text-[10px] font-medium", active && "text-accent-blue")}>{item.label}</span>
+              <span className={cn("text-[10px] font-medium", active && "text-accent-blue")}>
+                {item.label}
+              </span>
             </Link>
           );
         })}
