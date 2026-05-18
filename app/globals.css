@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #0F1923;
+  color: #E5E7EB;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* hide scrollbar for horizontal scrolls */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
