@@ -84,5 +84,19 @@ export function useMealLog(date: Date) {
     [supabase, findLog, load]
   );
 
-  return { logs, loading, findLog, logOption, logNoAppetite, removeLog, reload: load };
+  const logCustom = useCallback(
+    async (mealType: MealType, description: string, calories: number | null, protein: number | null) => {
+      await upsert({
+        meal_type: mealType,
+        option_chosen: null,
+        no_appetite: false,
+        notes: description,
+        calories_actual: calories,
+        protein_actual: protein,
+      });
+    },
+    [upsert]
+  );
+
+  return { logs, loading, findLog, logOption, logNoAppetite, logCustom, removeLog, reload: load };
 }

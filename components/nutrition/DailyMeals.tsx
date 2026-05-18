@@ -13,7 +13,7 @@ interface Props {
 
 export default function DailyMeals({ date }: Props) {
   const { meals, loading: loadingMeals } = useDayMeals(date);
-  const { findLog, logOption, logNoAppetite, removeLog, loading: loadingLogs } = useMealLog(date);
+  const { findLog, logOption, logNoAppetite, logCustom, removeLog, loading: loadingLogs } = useMealLog(date);
   const [tag, setTag] = useState<TagKey | "all">("all");
   const now = useMemo(() => new Date(), []);
 
@@ -48,6 +48,7 @@ export default function DailyMeals({ date }: Props) {
           tagFilter={tag}
           onLogOption={(m, opt) => logOption(m, opt)}
           onLogNoAppetite={(idx) => logNoAppetite(meal.meal_type, idx)}
+          onLogCustom={(desc, cal, prot) => logCustom(meal.meal_type, desc, cal, prot)}
           onRemove={() => removeLog(meal.meal_type)}
         />
       ))}

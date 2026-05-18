@@ -6,6 +6,7 @@ import MacroSummary from "@/components/nutrition/MacroSummary";
 import WaterTracker from "@/components/nutrition/WaterTracker";
 import ExamAlertsList from "@/components/nutrition/ExamAlertsList";
 import DailyMeals from "@/components/nutrition/DailyMeals";
+import QuickFoodCard from "@/components/nutrition/QuickFoodCard";
 import { useProfile } from "@/hooks/useProfile";
 import { useDayMeals } from "@/hooks/useTodayMeals";
 import { useMealLog } from "@/hooks/useMealLog";
@@ -47,6 +48,8 @@ export default function NutritionPage() {
       <ExamAlertsList />
 
       <WaterTracker compact />
+
+      <QuickFoodCard date={now} />
 
       <DailyMeals date={now} />
     </div>

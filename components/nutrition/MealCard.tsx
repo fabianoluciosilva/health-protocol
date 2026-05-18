@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Check, RotateCcw, Frown } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Check, RotateCcw, Frown, PenLine } from "lucide-react";
 import type { Meal, MealLog, OptionChosen } from "@/lib/supabase/types";
 import { MEAL_LABELS, getOptionText } from "@/lib/utils/nutrition";
 import { timeUntilLabel } from "@/lib/utils/dates";
@@ -15,12 +15,18 @@ interface Props {
   tagFilter: string;
   onLogOption: (meal: Meal, opt: OptionChosen) => Promise<void> | void;
   onLogNoAppetite: (idx: number) => Promise<void> | void;
+  onLogCustom: (description: string, calories: number | null, protein: number | null) => Promise<void> | void;
   onRemove: () => Promise<void> | void;
 }
 
-export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLogNoAppetite, onRemove }: Props) {
+export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLogNoAppetite, onLogCustom, onRemove }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [noAppetiteOpen, setNoAppetiteOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customDesc, setCustomDesc] = useState("");
+  const [customCal, setCustomCal] = useState("");
+  const [customProt, setCustomProt] = useState("");
+  const descRef = useRef<HTMLInputElement>(null);
 
   const filteredOptions = useMemo(() => {
     const tags = meal.tags ?? [];
@@ -36,7 +42,8 @@ export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLog
 
   const label = MEAL_LABELS[meal.meal_type];
   const time = meal.meal_time.slice(0, 5);
-  const taken = !!log && (log.option_chosen != null || log.no_appetite);
+  const taken = !!log && (log.option_chosen != null || log.no_appetite || (log.notes != null && !log.no_appetite && log.option_chosen == null));
+  const isCustom = !!log && !log.no_appetite && log.option_chosen == null && log.notes != null;
   const tu = timeUntilLabel(now, time);
 
   return (
@@ -68,6 +75,8 @@ export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLog
             <div className="mt-1 text-sm font-medium text-accent-green">
               {log!.no_appetite
                 ? `Sem fome: ${log!.notes ?? "registrado"}`
+                : isCustom
+                ? `${log!.notes} · ${log!.calories_actual ?? 0} kcal · ${log!.protein_actual ?? 0}g prot`
                 : log!.option_chosen === "skip"
                 ? "Pulou esta refeição"
                 : `Opção ${(log!.option_chosen ?? "").toString().toUpperCase()} · ${log!.calories_actual ?? meal.calories_est ?? 0} kcal · ${log!.protein_actual ?? meal.protein_g ?? 0}g prot`}
@@ -120,6 +129,64 @@ export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLog
               ver detalhes
             </button>
           )}
+          {/* Option D – custom manual entry */}
+          {customOpen ? (
+            <div className="space-y-2 rounded-xl bg-bg-elevated p-3">
+              <input
+                ref={descRef}
+                type="text"
+                placeholder="O que você comeu?"
+                value={customDesc}
+                onChange={(e) => setCustomDesc(e.target.value)}
+                className="w-full rounded-lg bg-bg-base px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-blue"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="kcal"
+                  value={customCal}
+                  onChange={(e) => setCustomCal(e.target.value)}
+                  className="w-full rounded-lg bg-bg-base px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-blue"
+                />
+                <input
+                  type="number"
+                  placeholder="g prot"
+                  value={customProt}
+                  onChange={(e) => setCustomProt(e.target.value)}
+                  className="w-full rounded-lg bg-bg-base px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-blue"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setCustomOpen(false); setCustomDesc(""); setCustomCal(""); setCustomProt(""); }}
+                  className="flex-1 rounded-xl bg-bg-base py-2 text-xs text-gray-400 active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={!customDesc.trim()}
+                  onClick={async () => {
+                    if (!customDesc.trim()) return;
+                    await onLogCustom(customDesc.trim(), customCal ? Number(customCal) : null, customProt ? Number(customProt) : null);
+                    setCustomOpen(false); setCustomDesc(""); setCustomCal(""); setCustomProt("");
+                  }}
+                  className="flex-1 rounded-xl bg-accent-blue py-2 text-xs font-semibold text-white disabled:opacity-40 active:scale-95"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setCustomOpen(true); setTimeout(() => descRef.current?.focus(), 50); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-600 py-2 text-xs font-medium text-gray-400 active:scale-95"
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              D — Informar manualmente
+            </button>
+          )}
+
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => onLogOption(meal, "skip")}

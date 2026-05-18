@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Pill, Salad, Dumbbell } from "lucide-react";
+import { Pill, Salad, Dumbbell, User } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const items = [
-  { href: "/medications", label: "Medicamentos", icon: Pill },
+  { href: "/medications", label: "Remédios", icon: Pill },
   { href: "/nutrition", label: "Nutrição", icon: Salad },
-  { href: "/workout", label: "Musculação", icon: Dumbbell },
+  { href: "/workout", label: "Treino", icon: Dumbbell },
+  { href: "/profile", label: "Perfil", icon: User },
 ];
 
 export default function BottomNav() {
@@ -19,9 +20,7 @@ export default function BottomNav() {
       <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2">
         {items.map((item) => {
           const active =
-            pathname === item.href ||
-            pathname.startsWith(item.href + "/") ||
-            (item.href === "/medications" && pathname.startsWith("/profile"));
+            pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
           return (
             <Link

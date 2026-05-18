@@ -187,6 +187,50 @@ export interface WeightHistory {
   created_at: string;
 }
 
+export interface QuickFoodLog {
+  id: string;
+  log_date: string;
+  log_time: string;
+  description: string;
+  category: "fruta" | "lanche" | "bebida" | "outro";
+  calories: number | null;
+  protein_g: number | null;
+  created_at: string;
+}
+
+export interface BodyWeightLog {
+  id: string;
+  log_date: string;
+  weight_kg: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface BodyMeasurement {
+  id: string;
+  log_date: string;
+  waist_cm: number | null;
+  chest_cm: number | null;
+  hips_cm: number | null;
+  arm_cm: number | null;
+  thigh_cm: number | null;
+  neck_cm: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ProfileDocument {
+  id: string;
+  doc_type: "exam" | "nutrition_plan" | "workout_plan" | "other";
+  title: string;
+  file_url: string | null;
+  file_name: string | null;
+  valid_from: string | null;
+  valid_days: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
 // ─── Database schema ───────────────────────────────────────────────────────
 
 type TableDef<TRow, TInsert = Partial<TRow>, TUpdate = Partial<TRow>> = {
@@ -215,6 +259,10 @@ export interface Database {
       exercise_logs: TableDef<ExerciseLog>;
       weight_history: TableDef<WeightHistory>;
       blood_pressure_logs: TableDef<BloodPressureLog>;
+      quick_food_logs: TableDef<QuickFoodLog>;
+      body_weight_logs: TableDef<BodyWeightLog>;
+      body_measurements: TableDef<BodyMeasurement>;
+      profile_documents: TableDef<ProfileDocument>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
