@@ -15,6 +15,8 @@ interface Props {
   splits: WorkoutSplit[];
   session: WorkoutSession | null;
   loading: boolean;
+  selectedSplitId?: string;
+  onSelectSplit: (id: string | undefined) => void;
   onStart: () => void;
   bodyWeightKg?: number;
 }
@@ -26,9 +28,13 @@ export default function TodayWorkout({
   splits,
   session,
   loading,
+  selectedSplitId,
+  onSelectSplit,
   onStart,
   bodyWeightKg = 130,
 }: Props) {
+  const todayDow = date.getDay() + 1;
+  const trainingSplits = splits.filter((s) => !s.is_rest_day);
   const nextWorkoutDay = useMemo(() => {
     if (!splits.length) return "";
     const dow = date.getDay() + 1;
@@ -45,9 +51,34 @@ export default function TodayWorkout({
     return "";
   }, [splits, date]);
 
+  const splitSelector = trainingSplits.length > 0 && (
+    <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {trainingSplits.map((s) => {
+        const isToday = s.day_of_week === todayDow;
+        const isActive = selectedSplitId ? s.id === selectedSplitId : isToday;
+        return (
+          <button
+            key={s.id}
+            onClick={() => onSelectSplit(s.id === (splits.find((x) => x.day_of_week === todayDow)?.id) && isToday ? undefined : s.id)}
+            className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+              isActive
+                ? "text-white"
+                : "bg-bg-card text-gray-400"
+            }`}
+            style={isActive ? { backgroundColor: s.color } : undefined}
+          >
+            {s.split_name}
+            {isToday && <span className="ml-1 opacity-70">·hoje</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="space-y-3">
+        {splitSelector}
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-16 animate-pulse rounded-2xl bg-bg-card" />
         ))}
@@ -57,21 +88,30 @@ export default function TodayWorkout({
 
   if (!todaySplit) {
     return (
-      <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
-        <Dumbbell className="mx-auto mb-2 h-6 w-6 text-gray-500" />
-        Nenhum treino configurado para hoje.
+      <div className="space-y-3">
+        {splitSelector}
+        <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
+          <Dumbbell className="mx-auto mb-2 h-6 w-6 text-gray-500" />
+          {selectedSplitId ? "Carregando treino..." : "Nenhum treino configurado para hoje."}
+        </div>
       </div>
     );
   }
 
-  if (todaySplit.is_rest_day) {
-    return <RestDayCard split={todaySplit} nextWorkoutDay={nextWorkoutDay} />;
+  if (todaySplit?.is_rest_day) {
+    return (
+      <div className="space-y-3">
+        {splitSelector}
+        <RestDayCard split={todaySplit} nextWorkoutDay={nextWorkoutDay} />
+      </div>
+    );
   }
 
   const duration = estimateWorkoutDuration(splitExercises.length);
 
   return (
     <div className="space-y-4">
+      {splitSelector}
       <div className="rounded-2xl bg-bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
