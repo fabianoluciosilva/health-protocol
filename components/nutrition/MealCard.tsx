@@ -44,14 +44,28 @@ export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLog
       "space-y-3 rounded-2xl border bg-bg-card p-4",
       taken ? "border-accent-green/40" : "border-bg-elevated"
     )}>
-      <header className="flex items-start justify-between">
-        <div>
+      <header className="flex items-start gap-3">
+        {/* Completion checkbox */}
+        <button
+          onClick={() => taken ? onRemove() : onLogOption(meal, "a")}
+          title={taken ? "Desmarcar refeição" : "Marcar como concluída"}
+          className={cn(
+            "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all active:scale-90",
+            taken
+              ? "border-accent-green bg-accent-green"
+              : "border-gray-600 bg-transparent"
+          )}
+        >
+          {taken && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+        </button>
+
+        {/* Meal info */}
+        <div className="flex-1 min-w-0">
           <div className="text-[11px] uppercase tracking-wider text-gray-500">
             <span aria-hidden>{label.icon}</span> {label.label} · {time}
           </div>
           {taken ? (
-            <div className="mt-1 flex items-center gap-2 text-sm text-accent-green">
-              <Check className="h-4 w-4" strokeWidth={3} />
+            <div className="mt-1 text-sm font-medium text-accent-green">
               {log!.no_appetite
                 ? `Sem fome: ${log!.notes ?? "registrado"}`
                 : log!.option_chosen === "skip"
@@ -62,6 +76,8 @@ export default function MealCard({ meal, log, now, tagFilter, onLogOption, onLog
             <div className="mt-1 text-xs text-gray-400">{tu}</div>
           )}
         </div>
+
+        {/* Right side */}
         {taken ? (
           <button
             onClick={() => onRemove()}
