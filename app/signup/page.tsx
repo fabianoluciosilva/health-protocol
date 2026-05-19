@@ -46,7 +46,6 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      // Criar conta via API server-side (sem confirmação de email)
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,10 +59,17 @@ export default function SignUpPage() {
           sleep_time: sleepTime,
         }),
       });
-      const data = await res.json() as { error?: string };
 
-      if (!res.ok) {
-        setError(data.error ?? "Erro ao criar conta.");
+      const text = await res.text();
+      let data: { error?: string; success?: boolean } = {};
+      try { data = JSON.parse(text); } catch {
+        setError("Resposta inválida (HTTP " + res.status + "): " + text.slice(0, 200));
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok || !data.success) {
+        setError(data.error ?? `Erro ao criar conta (HTTP ${res.status})`);
         setLoading(false);
         return;
       }
@@ -77,8 +83,9 @@ export default function SignUpPage() {
       }
 
       window.location.href = "/medications";
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "desconhecido";
+      setError("Erro de conexão: " + msg);
       setLoading(false);
     }
   };
