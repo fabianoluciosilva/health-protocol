@@ -46,23 +46,32 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name.trim(),
-            birth_date: birthDate,
-            weight_kg: parseFloat(weightKg).toString(),
-            height_cm: parseFloat(heightCm).toString(),
-            wake_time: wakeTime + ":00",
-            sleep_time: sleepTime + ":00",
-          },
-        },
+      // Criar conta via API server-side (sem confirmação de email)
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email, password,
+          name: name.trim(),
+          birth_date: birthDate,
+          weight_kg: weightKg,
+          height_cm: heightCm,
+          wake_time: wakeTime,
+          sleep_time: sleepTime,
+        }),
       });
+      const data = await res.json() as { error?: string };
 
-      if (authError) {
-        setError(authError.message);
+      if (!res.ok) {
+        setError(data.error ?? "Erro ao criar conta.");
+        setLoading(false);
+        return;
+      }
+
+      // Fazer login imediatamente após criação
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        setError("Conta criada! Faça login para continuar.");
         setLoading(false);
         return;
       }
