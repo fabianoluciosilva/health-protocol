@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Heart, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -18,19 +16,28 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError("E-mail ou senha incorretos");
+      if (authError) {
+        if (authError.message.includes("Email not confirmed")) {
+          setError("E-mail não confirmado. Confirme no painel do Supabase.");
+        } else {
+          setError("E-mail ou senha incorretos");
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Hard navigation garante que o cookie de sessão seja lido pelo middleware
+      window.location.href = "/medications";
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
       setLoading(false);
-      return;
     }
-
-    router.push("/medications");
-    router.refresh();
   };
 
   return (
