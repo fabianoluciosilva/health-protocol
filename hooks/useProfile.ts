@@ -11,13 +11,14 @@ export function useProfile() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setProfile(null); setLoading(false); return; }
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1);
-    const rows = (data ?? []) as Profile[];
-    setProfile(rows[0] ?? null);
+      .eq("id", user.id)
+      .maybeSingle();
+    setProfile((data as Profile | null) ?? null);
     setLoading(false);
   }, [supabase]);
 
