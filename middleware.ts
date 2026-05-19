@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.match(/\.(ico|png|svg|jpg|jpeg|webp|json|js|css|txt)$/);
 
