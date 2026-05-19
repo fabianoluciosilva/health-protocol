@@ -46,38 +46,23 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signUp({ email, password });
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name.trim(),
+            birth_date: birthDate,
+            weight_kg: parseFloat(weightKg).toString(),
+            height_cm: parseFloat(heightCm).toString(),
+            wake_time: wakeTime + ":00",
+            sleep_time: sleepTime + ":00",
+          },
+        },
+      });
 
       if (authError) {
         setError(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      const userId = data.user?.id;
-      if (!userId) {
-        setError("Erro ao criar conta. Tente novamente.");
-        setLoading(false);
-        return;
-      }
-
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: userId,
-        name: name.trim(),
-        birth_date: birthDate,
-        weight_kg: parseFloat(weightKg),
-        height_cm: parseFloat(heightCm),
-        wake_time: wakeTime,
-        sleep_time: sleepTime,
-        onboarding_done: false,
-        ai_nutrition_generated: false,
-        ai_workout_generated: false,
-        diet_renewal_months: 1,
-        workout_renewal_months: 1,
-      });
-
-      if (profileError) {
-        setError("Conta criada, mas erro ao salvar perfil: " + profileError.message);
         setLoading(false);
         return;
       }
