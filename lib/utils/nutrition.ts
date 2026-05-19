@@ -5,9 +5,10 @@ export const MEAL_LABELS: Record<MealType, { label: string; icon: string }> = {
   lunch: { label: "Almoço", icon: "🍽️" },
   snack: { label: "Lanche", icon: "🌿" },
   dinner: { label: "Jantar", icon: "🌙" },
+  ceia: { label: "Ceia", icon: "🌛" },
 };
 
-export const MEAL_ORDER: MealType[] = ["breakfast", "lunch", "snack", "dinner"];
+export const MEAL_ORDER: MealType[] = ["breakfast", "lunch", "snack", "dinner", "ceia"];
 
 export const TAG_LABELS: Record<string, { label: string; icon: string }> = {
   casa: { label: "Casa", icon: "🏠" },
@@ -55,6 +56,11 @@ export const NO_APPETITE_OPTIONS: Record<MealType, NoAppetiteOption[]> = {
     { label: "Crepioca 2 ovos + queijo light", calories: 280, protein: 28 },
     { label: "Iogurte grego + 1 scoop whey", calories: 280, protein: 35 },
     { label: "Sopa proteica leve", calories: 250, protein: 22 },
+  ],
+  ceia: [
+    { label: "Iogurte grego 100g + mel", calories: 150, protein: 12 },
+    { label: "1 fatia pão integral + cream cheese light", calories: 140, protein: 8 },
+    { label: "Whey 1 scoop com leite morno", calories: 170, protein: 25 },
   ],
 };
 

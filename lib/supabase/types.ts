@@ -11,6 +11,7 @@ export interface Profile {
   height_cm: number;
   wake_time: string;
   sleep_time: string;
+  onboarding_done: boolean;
 }
 
 export interface Medication {
@@ -71,7 +72,7 @@ export interface LabResult {
 
 // ─── Módulo 2 — Nutrição ───────────────────────────────────────────────────
 
-export type MealType = "breakfast" | "lunch" | "snack" | "dinner";
+export type MealType = "breakfast" | "lunch" | "snack" | "dinner" | "ceia";
 export type OptionChosen = "a" | "b" | "c" | "skip";
 
 export interface Meal {

@@ -54,5 +54,12 @@ export function useWorkoutSession(date: Date, splitId: string | undefined) {
     await loadSession();
   }, [supabase, session, loadSession]);
 
-  return { session, loading, startSession, completeSession, reload: loadSession };
+  const cancelSession = useCallback(async () => {
+    if (!session) return;
+    await supabase.from("exercise_logs").delete().eq("session_id", session.id);
+    await supabase.from("workout_sessions").delete().eq("id", session.id);
+    setSession(null);
+  }, [supabase, session]);
+
+  return { session, loading, startSession, completeSession, cancelSession, reload: loadSession };
 }
