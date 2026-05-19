@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw } from "lucide-react";
+import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { useDocuments, daysRemaining } from "@/hooks/useDocuments";
@@ -627,10 +628,28 @@ function EvolucaoTab() {
 
 export default function ProfilePage() {
   const [tab, setTab] = useState<Tab>("dados");
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
   return (
     <div className="space-y-4 px-4 pt-4 pb-6">
-      <h1 className="text-lg font-semibold text-white">Perfil</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-white">Perfil</h1>
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="flex items-center gap-1.5 rounded-xl bg-bg-card px-3 py-2 text-xs font-medium text-gray-400 active:scale-95 disabled:opacity-50"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          {loggingOut ? "Saindo…" : "Sair"}
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-2xl bg-bg-card p-1">
