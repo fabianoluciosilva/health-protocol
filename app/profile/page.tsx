@@ -1,22 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw, LogOut } from "lucide-react";
+import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw, LogOut, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { useDocuments, daysRemaining } from "@/hooks/useDocuments";
 import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
+import { useMedications } from "@/hooks/useMedications";
 import { calculateProfile } from "@/lib/utils/profile";
 import { cn } from "@/lib/utils/cn";
-import type { ProfileDocument } from "@/lib/supabase/types";
+import type { ProfileDocument, Medication, Frequency } from "@/lib/supabase/types";
 
 const TABS = [
-  { key: "dados", label: "Dados" },
-  { key: "docs", label: "Documentos" },
+  { key: "dados",    label: "Dados" },
+  { key: "meds",     label: "Meds" },
+  { key: "docs",     label: "Docs" },
   { key: "evolucao", label: "Evolução" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
+
+const FREQ_LABELS: Record<Frequency, string> = {
+  daily: "Diário",
+  weekly: "Semanal",
+  every_10_days: "A cada 10 dias",
+};
+const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MED_COLORS = ["#3b82f6", "#22c55e", "#a855f7", "#f97316", "#ef4444", "#06b6d4"];
+
+function daysUntilNext(lastAt: string | null): number {
+  if (!lastAt) return 0;
+  const next = new Date(lastAt);
+  next.setMonth(next.getMonth() + 1);
+  return Math.max(0, Math.ceil((next.getTime() - Date.now()) / 86400000));
+}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -71,8 +88,6 @@ function DadosTab() {
   const [sleep, setSleep] = useState("");
   const [foodRestrictions, setFoodRestrictions] = useState("");
   const [mobilityRestrictions, setMobilityRestrictions] = useState("");
-  const [dietMonths, setDietMonths] = useState(1);
-  const [workoutMonths, setWorkoutMonths] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const nutritionAI = useAIGenerate("nutrition");
@@ -88,8 +103,6 @@ function DadosTab() {
     setSleep(profile.sleep_time.slice(0, 5));
     setFoodRestrictions(profile.food_restrictions ?? "");
     setMobilityRestrictions(profile.mobility_restrictions ?? "");
-    setDietMonths(profile.diet_renewal_months ?? 1);
-    setWorkoutMonths(profile.workout_renewal_months ?? 1);
   }, [profile]);
 
   const handleSave = async () => {
@@ -103,8 +116,6 @@ function DadosTab() {
       sleep_time: sleep.length === 5 ? `${sleep}:00` : sleep,
       food_restrictions: foodRestrictions.trim() || null,
       mobility_restrictions: mobilityRestrictions.trim() || null,
-      diet_renewal_months: dietMonths,
-      workout_renewal_months: workoutMonths,
     });
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
   };
@@ -163,41 +174,15 @@ function DadosTab() {
         </button>
       </section>
 
-      {/* Geração e ciclos de renovação */}
+      {/* Geração por IA — limite 1× ao mês */}
       {profile && (
         <section className="space-y-3 rounded-2xl border border-accent-purple/20 bg-accent-purple/5 p-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-accent-purple" />
             <h2 className="text-sm font-semibold text-accent-purple">Geração por IA</h2>
+            <span className="ml-auto text-xs text-gray-600">1× ao mês</span>
           </div>
 
-          {/* Ciclos */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-400">Renovar Dieta</label>
-              <select
-                value={dietMonths}
-                onChange={(e) => setDietMonths(Number(e.target.value))}
-                className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-purple"
-              >
-                <option value={1}>A cada 1 mês</option>
-                <option value={3}>A cada 3 meses</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-400">Renovar Treino</label>
-              <select
-                value={workoutMonths}
-                onChange={(e) => setWorkoutMonths(Number(e.target.value))}
-                className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-purple"
-              >
-                <option value={1}>A cada 1 mês</option>
-                <option value={3}>A cada 3 meses</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Informações da última geração */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-xl bg-bg-elevated p-2 text-center">
               <div className="text-gray-500">Última dieta</div>
@@ -217,35 +202,35 @@ function DadosTab() {
             </div>
           </div>
 
-          {/* Botões de geração manual */}
           <div className="flex gap-2">
-            <button
-              onClick={async () => { await nutritionAI.generate(profile); reload(); }}
-              disabled={nutritionAI.generating}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-50 active:scale-[0.98]"
-            >
-              {nutritionAI.generating ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {nutritionAI.generating ? "Gerando…" : "Nova Dieta"}
-            </button>
-            <button
-              onClick={async () => { await workoutAI.generate(profile); reload(); }}
-              disabled={workoutAI.generating}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-50 active:scale-[0.98]"
-            >
-              {workoutAI.generating ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {workoutAI.generating ? "Gerando…" : "Novo Treino"}
-            </button>
+            {(() => {
+              const d = daysUntilNext(profile.last_diet_generated_at);
+              return (
+                <button
+                  onClick={async () => { await nutritionAI.generate(profile); reload(); }}
+                  disabled={nutritionAI.generating || d > 0}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-40 active:scale-[0.98]"
+                >
+                  {nutritionAI.generating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {nutritionAI.generating ? "Gerando…" : d > 0 ? `Dieta em ${d}d` : "Nova Dieta"}
+                </button>
+              );
+            })()}
+            {(() => {
+              const d = daysUntilNext(profile.last_workout_generated_at);
+              return (
+                <button
+                  onClick={async () => { await workoutAI.generate(profile); reload(); }}
+                  disabled={workoutAI.generating || d > 0}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-40 active:scale-[0.98]"
+                >
+                  {workoutAI.generating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {workoutAI.generating ? "Gerando…" : d > 0 ? `Treino em ${d}d` : "Novo Treino"}
+                </button>
+              );
+            })()}
           </div>
 
-          {/* Resultado da geração manual */}
           {(nutritionAI.result || workoutAI.result) && (
             <div className="max-h-60 overflow-y-auto rounded-xl bg-bg-elevated p-3 text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">
               {nutritionAI.result ?? workoutAI.result}
@@ -254,11 +239,6 @@ function DadosTab() {
           {(nutritionAI.error || workoutAI.error) && (
             <p className="text-xs text-red-400">{nutritionAI.error ?? workoutAI.error}</p>
           )}
-
-          <button onClick={handleSave} disabled={saving}
-            className="w-full rounded-xl bg-bg-elevated py-2 text-xs text-gray-400 active:scale-95 disabled:opacity-60">
-            {saving ? "Salvando..." : saved ? "Ciclos salvos ✓" : "Salvar ciclos de renovação"}
-          </button>
         </section>
       )}
 
@@ -273,6 +253,224 @@ function DadosTab() {
           <Metric label="Proteína" value={`${metrics.proteinGoal} g`} hint={`2g x ${metrics.targetWeight}kg alvo`} />
         </div>
       </section>
+    </div>
+  );
+}
+
+// ─── Tab: Medicamentos ───────────────────────────────────────────────────────
+
+function MedicamentosTab() {
+  const { medications, loading, addMedication, updateMedication, removeMedication } = useMedications(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Medication | null>(null);
+  const [mName, setMName] = useState("");
+  const [mDose, setMDose] = useState("");
+  const [mFreq, setMFreq] = useState<Frequency>("daily");
+  const [mTime1, setMTime1] = useState("08:00");
+  const [mTime2, setMTime2] = useState("");
+  const [mWeekDay, setMWeekDay] = useState(0);
+  const [mStartDate, setMStartDate] = useState(todayISO());
+  const [mColor, setMColor] = useState(MED_COLORS[0]);
+  const [mNotes, setMNotes] = useState("");
+  const [mActive, setMActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setMName(""); setMDose(""); setMFreq("daily"); setMTime1("08:00");
+    setMTime2(""); setMWeekDay(0); setMStartDate(todayISO());
+    setMColor(MED_COLORS[0]); setMNotes(""); setMActive(true); setEditing(null);
+  };
+
+  const openAdd = () => { resetForm(); setShowForm(true); };
+
+  const openEdit = (med: Medication) => {
+    setEditing(med);
+    setMName(med.name); setMDose(med.dose); setMFreq(med.frequency);
+    setMTime1(med.time_1.slice(0, 5));
+    setMTime2(med.time_2 ? med.time_2.slice(0, 5) : "");
+    setMWeekDay(med.week_day ?? 0);
+    setMStartDate(med.start_date ?? todayISO());
+    setMColor(med.color); setMNotes(med.notes ?? ""); setMActive(med.active);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!mName.trim() || !mDose.trim()) return;
+    setSaving(true);
+    const input = {
+      name: mName.trim(), dose: mDose.trim(), frequency: mFreq,
+      time_1: mTime1.length === 5 ? mTime1 + ":00" : mTime1,
+      time_2: mTime2 ? (mTime2.length === 5 ? mTime2 + ":00" : mTime2) : null,
+      week_day: mFreq === "weekly" ? mWeekDay : null,
+      start_date: mFreq === "every_10_days" ? mStartDate : null,
+      color: mColor, notes: mNotes.trim() || null, active: mActive,
+    };
+    if (editing) await updateMedication(editing.id, input);
+    else await addMedication(input);
+    setSaving(false); setShowForm(false); resetForm();
+  };
+
+  const fmtFreq = (med: Medication) =>
+    med.frequency === "weekly"
+      ? `${FREQ_LABELS.weekly} — ${DAY_LABELS[med.week_day ?? 0]}`
+      : FREQ_LABELS[med.frequency];
+
+  const fmtTime = (med: Medication) => {
+    const t1 = med.time_1.slice(0, 5);
+    const t2 = med.time_2 ? " · " + med.time_2.slice(0, 5) : "";
+    return t1 + t2;
+  };
+
+  const inputCls = "mt-1 w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-blue";
+
+  if (loading) return <div className="h-24 animate-pulse rounded-2xl bg-bg-card" />;
+
+  return (
+    <div className="space-y-3">
+      {/* Delete confirm */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-bg-card p-6 space-y-4">
+            <h3 className="text-base font-semibold text-white">Remover medicamento?</h3>
+            <p className="text-sm text-gray-400">Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDel(null)}
+                className="flex-1 rounded-xl bg-bg-elevated py-2.5 text-sm text-gray-400 active:scale-95">Cancelar</button>
+              <button onClick={async () => { await removeMedication(confirmDel); setConfirmDel(null); }}
+                className="flex-1 rounded-xl bg-red-500/20 py-2.5 text-sm font-semibold text-red-400 active:scale-95">Remover</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 py-8 overflow-y-auto">
+          <div className="w-full max-w-sm rounded-2xl bg-bg-card p-5 space-y-3">
+            <h3 className="text-base font-semibold text-white">{editing ? "Editar" : "Novo"} medicamento</h3>
+
+            <label className="block">
+              <span className="text-xs text-gray-500">Nome</span>
+              <input type="text" value={mName} onChange={(e) => setMName(e.target.value)}
+                placeholder="Ex: Anastrozol" className={inputCls} />
+            </label>
+
+            <label className="block">
+              <span className="text-xs text-gray-500">Dose</span>
+              <input type="text" value={mDose} onChange={(e) => setMDose(e.target.value)}
+                placeholder="Ex: 25mg" className={inputCls} />
+            </label>
+
+            <label className="block">
+              <span className="text-xs text-gray-500">Frequência</span>
+              <select value={mFreq} onChange={(e) => setMFreq(e.target.value as Frequency)} className={inputCls}>
+                <option value="daily">Diário</option>
+                <option value="weekly">Semanal</option>
+                <option value="every_10_days">A cada 10 dias</option>
+              </select>
+            </label>
+
+            {mFreq === "weekly" && (
+              <label className="block">
+                <span className="text-xs text-gray-500">Dia da semana</span>
+                <select value={mWeekDay} onChange={(e) => setMWeekDay(Number(e.target.value))} className={inputCls}>
+                  {DAY_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                </select>
+              </label>
+            )}
+
+            {mFreq === "every_10_days" && (
+              <label className="block">
+                <span className="text-xs text-gray-500">Data de início / última dose</span>
+                <input type="date" value={mStartDate} onChange={(e) => setMStartDate(e.target.value)} className={inputCls} />
+              </label>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-xs text-gray-500">Horário 1</span>
+                <input type="time" value={mTime1} onChange={(e) => setMTime1(e.target.value)} className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="text-xs text-gray-500">Horário 2 (opcional)</span>
+                <input type="time" value={mTime2} onChange={(e) => setMTime2(e.target.value)} className={inputCls} />
+              </label>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">Cor</span>
+              <div className="flex gap-2.5 pt-0.5">
+                {MED_COLORS.map((c) => (
+                  <button key={c} type="button" onClick={() => setMColor(c)}
+                    className="h-7 w-7 rounded-full transition-all"
+                    style={{ backgroundColor: c, outline: mColor === c ? `2px solid ${c}` : "none", outlineOffset: "2px" }} />
+                ))}
+              </div>
+            </div>
+
+            <label className="block">
+              <span className="text-xs text-gray-500">Notas (opcional)</span>
+              <input type="text" value={mNotes} onChange={(e) => setMNotes(e.target.value)}
+                placeholder="Observações" className={inputCls} />
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={mActive} onChange={(e) => setMActive(e.target.checked)}
+                className="h-4 w-4 rounded accent-accent-blue" />
+              <span className="text-sm text-gray-300">Medicamento ativo</span>
+            </label>
+
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
+                className="flex-1 rounded-xl bg-bg-elevated py-2.5 text-sm text-gray-400 active:scale-95">Cancelar</button>
+              <button type="button" onClick={handleSave} disabled={saving || !mName.trim() || !mDose.trim()}
+                className="flex-1 rounded-xl bg-accent-blue py-2.5 text-sm font-semibold text-white disabled:opacity-50 active:scale-95">
+                {saving ? "Salvando…" : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {medications.length === 0 ? (
+        <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
+          Nenhum medicamento cadastrado.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {medications.map((med) => (
+            <div key={med.id} className={cn("flex items-center gap-3 rounded-2xl bg-bg-card p-4", !med.active && "opacity-40")}>
+              <div className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: med.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white">
+                  {med.name} <span className="text-xs text-gray-500">{med.dose}</span>
+                  {!med.active && <span className="ml-1 text-xs text-gray-600">(inativo)</span>}
+                </div>
+                <div className="text-xs text-gray-500">{fmtFreq(med)} · {fmtTime(med)}</div>
+                {med.notes && <div className="truncate text-xs text-gray-600">{med.notes}</div>}
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <button onClick={() => openEdit(med)}
+                  className="rounded-xl p-2 text-gray-600 active:bg-bg-elevated active:text-accent-blue">
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button onClick={() => setConfirmDel(med.id)}
+                  className="rounded-xl p-2 text-gray-600 active:bg-bg-elevated active:text-red-400">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={openAdd}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-700 py-3 text-sm text-gray-500 active:bg-bg-card">
+        <Plus className="h-4 w-4" />
+        Adicionar medicamento
+      </button>
     </div>
   );
 }
@@ -663,6 +861,7 @@ export default function ProfilePage() {
       </div>
 
       {tab === "dados"    && <DadosTab />}
+      {tab === "meds"     && <MedicamentosTab />}
       {tab === "docs"     && <DocsTab />}
       {tab === "evolucao" && <EvolucaoTab />}
     </div>
