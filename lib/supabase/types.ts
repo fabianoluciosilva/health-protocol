@@ -12,6 +12,14 @@ export interface Profile {
   wake_time: string;
   sleep_time: string;
   onboarding_done: boolean;
+  food_restrictions: string | null;
+  mobility_restrictions: string | null;
+  ai_nutrition_generated: boolean;
+  ai_workout_generated: boolean;
+  last_diet_generated_at: string | null;
+  last_workout_generated_at: string | null;
+  diet_renewal_months: number;
+  workout_renewal_months: number;
 }
 
 export interface Medication {

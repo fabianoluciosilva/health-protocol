@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle, Clock, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkoutSession, ExerciseLog } from "@/lib/supabase/types";
 
@@ -13,35 +13,46 @@ interface SessionWithLogs extends WorkoutSession {
 export default function HistoryPage() {
   const [sessions, setSessions] = useState<SessionWithLogs[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const supabase = createClient();
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data: sessData } = await supabase
-        .from("workout_sessions")
-        .select("*, split:workout_splits(*)")
-        .eq("completed", true)
-        .order("session_date", { ascending: false })
-        .limit(30);
+  const loadSessions = useCallback(async () => {
+    setLoading(true);
+    const { data: sessData } = await supabase
+      .from("workout_sessions")
+      .select("*, split:workout_splits(*)")
+      .eq("completed", true)
+      .order("session_date", { ascending: false })
+      .limit(30);
 
-      if (!sessData) { setLoading(false); return; }
+    if (!sessData) { setLoading(false); return; }
 
-      const sessIds = (sessData as WorkoutSession[]).map((s) => s.id);
-      const { data: logsData } = await supabase
-        .from("exercise_logs")
-        .select("*, exercise:exercises(name)")
-        .in("session_id", sessIds)
-        .eq("completed", true);
+    const sessIds = (sessData as WorkoutSession[]).map((s) => s.id);
+    const { data: logsData } = await supabase
+      .from("exercise_logs")
+      .select("*, exercise:exercises(name)")
+      .in("session_id", sessIds)
+      .eq("completed", true);
 
-      const logsBySession = ((logsData ?? []) as ExerciseLog[]).reduce<Record<string, ExerciseLog[]>>(
-        (acc, l) => { (acc[l.session_id] ??= []).push(l); return acc; }, {}
-      );
+    const logsBySession = ((logsData ?? []) as ExerciseLog[]).reduce<Record<string, ExerciseLog[]>>(
+      (acc, l) => { (acc[l.session_id] ??= []).push(l); return acc; }, {}
+    );
 
-      setSessions((sessData as WorkoutSession[]).map((s) => ({ ...s, logs: logsBySession[s.id] ?? [] })));
-      setLoading(false);
-    })();
+    setSessions((sessData as WorkoutSession[]).map((s) => ({ ...s, logs: logsBySession[s.id] ?? [] })));
+    setLoading(false);
   }, [supabase]);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  const handleRollback = async (sessionId: string) => {
+    setDeleting(true);
+    await supabase.from("exercise_logs").delete().eq("session_id", sessionId);
+    await supabase.from("workout_sessions").delete().eq("id", sessionId);
+    setConfirmId(null);
+    setDeleting(false);
+    await loadSessions();
+  };
 
   const formatDate = (d: string) =>
     new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" });
@@ -53,6 +64,35 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-4 px-4 pt-4">
+      {/* Modal de confirmação de rollback */}
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-bg-card p-6 space-y-4">
+            <h3 className="text-base font-semibold text-white">Desfazer treino?</h3>
+            <p className="text-sm text-gray-400">
+              Todos os registros de carga, volume e check-in desta sessão serão excluídos permanentemente.
+              Isso não pode ser desfeito.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmId(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-bg-elevated py-2.5 text-sm text-gray-400 active:scale-95 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleRollback(confirmId)}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-500/20 py-2.5 text-sm font-semibold text-red-400 active:scale-95 disabled:opacity-50"
+              >
+                {deleting ? "Removendo…" : "Sim, desfazer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="flex items-center gap-3">
         <Link href="/workout" className="rounded-xl bg-bg-card p-2 text-gray-400 active:scale-95">
           <ArrowLeft className="h-5 w-5" />
@@ -78,7 +118,7 @@ export default function HistoryPage() {
             return (
               <div key={s.id} className="rounded-2xl bg-bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
                       <Calendar className="h-3.5 w-3.5" />
                       {formatDate(s.session_date)}
@@ -87,17 +127,26 @@ export default function HistoryPage() {
                       {(s as SessionWithLogs & { split?: { split_name: string } }).split?.split_name ?? "Treino"}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-1 text-xs text-accent-green">
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      {s.logs.length} exercícios
-                    </div>
-                    {dur && (
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Clock className="h-3 w-3" />
-                        {dur} min
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1 text-xs text-accent-green">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {s.logs.length} exercícios
                       </div>
-                    )}
+                      {dur && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Clock className="h-3 w-3" />
+                          {dur} min
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setConfirmId(s.id)}
+                      title="Desfazer treino"
+                      className="rounded-xl p-2 text-gray-600 active:bg-bg-elevated active:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 {s.logs.length > 0 && (

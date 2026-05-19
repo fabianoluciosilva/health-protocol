@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical } from "lucide-react";
+import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
+import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { useDocuments, daysRemaining } from "@/hooks/useDocuments";
 import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
 import { calculateProfile } from "@/lib/utils/profile";
@@ -60,15 +61,21 @@ function SimpleSparkline({ values, dates }: { values: number[]; dates: string[] 
 // ─── Tab: Dados ──────────────────────────────────────────────────────────────
 
 function DadosTab() {
-  const { profile, loading, update } = useProfile();
+  const { profile, loading, update, reload } = useProfile();
   const [name, setName] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [wake, setWake] = useState("");
   const [sleep, setSleep] = useState("");
+  const [foodRestrictions, setFoodRestrictions] = useState("");
+  const [mobilityRestrictions, setMobilityRestrictions] = useState("");
+  const [dietMonths, setDietMonths] = useState(1);
+  const [workoutMonths, setWorkoutMonths] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const nutritionAI = useAIGenerate("nutrition");
+  const workoutAI = useAIGenerate("workout");
 
   useEffect(() => {
     if (!profile) return;
@@ -78,11 +85,26 @@ function DadosTab() {
     setBirthDate(profile.birth_date);
     setWake(profile.wake_time.slice(0, 5));
     setSleep(profile.sleep_time.slice(0, 5));
+    setFoodRestrictions(profile.food_restrictions ?? "");
+    setMobilityRestrictions(profile.mobility_restrictions ?? "");
+    setDietMonths(profile.diet_renewal_months ?? 1);
+    setWorkoutMonths(profile.workout_renewal_months ?? 1);
   }, [profile]);
 
   const handleSave = async () => {
     setSaving(true);
-    await update({ name, weight_kg: Number(weight), height_cm: Number(height), birth_date: birthDate, wake_time: wake.length === 5 ? `${wake}:00` : wake, sleep_time: sleep.length === 5 ? `${sleep}:00` : sleep });
+    await update({
+      name,
+      weight_kg: Number(weight),
+      height_cm: Number(height),
+      birth_date: birthDate,
+      wake_time: wake.length === 5 ? `${wake}:00` : wake,
+      sleep_time: sleep.length === 5 ? `${sleep}:00` : sleep,
+      food_restrictions: foodRestrictions.trim() || null,
+      mobility_restrictions: mobilityRestrictions.trim() || null,
+      diet_renewal_months: dietMonths,
+      workout_renewal_months: workoutMonths,
+    });
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
   };
 
@@ -107,6 +129,137 @@ function DadosTab() {
           {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar perfil"}
         </button>
       </section>
+
+      {/* Restrições — usadas como contexto pela IA */}
+      <section className="space-y-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4">
+        <div className="flex items-center gap-2">
+          <span className="text-base">⚠️</span>
+          <h2 className="text-sm font-semibold text-amber-300">Restrições (contexto para IA)</h2>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-400">Restrições Alimentares</label>
+          <textarea
+            value={foodRestrictions}
+            onChange={(e) => setFoodRestrictions(e.target.value)}
+            placeholder="Ex: intolerância à lactose, alergia a glúten, vegetariano, não come frango..."
+            rows={3}
+            className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-amber-400 resize-none"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-400">Restrições de Mobilidade / Lesões</label>
+          <textarea
+            value={mobilityRestrictions}
+            onChange={(e) => setMobilityRestrictions(e.target.value)}
+            placeholder="Ex: problema no joelho direito, hérnia de disco L4-L5, cirurgia no ombro esquerdo..."
+            rows={3}
+            className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-amber-400 resize-none"
+          />
+        </div>
+        <p className="text-xs text-gray-500">Essas informações são usadas pela IA para personalizar sua dieta e treino.</p>
+        <button onClick={handleSave} disabled={saving} className="w-full rounded-xl bg-amber-500/80 py-2.5 text-sm font-semibold text-white active:scale-[0.98] disabled:opacity-60">
+          {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar restrições"}
+        </button>
+      </section>
+
+      {/* Geração e ciclos de renovação */}
+      {profile && (
+        <section className="space-y-3 rounded-2xl border border-accent-purple/20 bg-accent-purple/5 p-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent-purple" />
+            <h2 className="text-sm font-semibold text-accent-purple">Geração por IA</h2>
+          </div>
+
+          {/* Ciclos */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-400">Renovar Dieta</label>
+              <select
+                value={dietMonths}
+                onChange={(e) => setDietMonths(Number(e.target.value))}
+                className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-purple"
+              >
+                <option value={1}>A cada 1 mês</option>
+                <option value={3}>A cada 3 meses</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-400">Renovar Treino</label>
+              <select
+                value={workoutMonths}
+                onChange={(e) => setWorkoutMonths(Number(e.target.value))}
+                className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-purple"
+              >
+                <option value={1}>A cada 1 mês</option>
+                <option value={3}>A cada 3 meses</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Informações da última geração */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-bg-elevated p-2 text-center">
+              <div className="text-gray-500">Última dieta</div>
+              <div className="font-medium text-white">
+                {profile.last_diet_generated_at
+                  ? new Date(profile.last_diet_generated_at).toLocaleDateString("pt-BR")
+                  : "Não gerada"}
+              </div>
+            </div>
+            <div className="rounded-xl bg-bg-elevated p-2 text-center">
+              <div className="text-gray-500">Último treino</div>
+              <div className="font-medium text-white">
+                {profile.last_workout_generated_at
+                  ? new Date(profile.last_workout_generated_at).toLocaleDateString("pt-BR")
+                  : "Não gerado"}
+              </div>
+            </div>
+          </div>
+
+          {/* Botões de geração manual */}
+          <div className="flex gap-2">
+            <button
+              onClick={async () => { await nutritionAI.generate(profile); reload(); }}
+              disabled={nutritionAI.generating}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-50 active:scale-[0.98]"
+            >
+              {nutritionAI.generating ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {nutritionAI.generating ? "Gerando…" : "Nova Dieta"}
+            </button>
+            <button
+              onClick={async () => { await workoutAI.generate(profile); reload(); }}
+              disabled={workoutAI.generating}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent-purple/80 py-2.5 text-xs font-semibold text-white disabled:opacity-50 active:scale-[0.98]"
+            >
+              {workoutAI.generating ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {workoutAI.generating ? "Gerando…" : "Novo Treino"}
+            </button>
+          </div>
+
+          {/* Resultado da geração manual */}
+          {(nutritionAI.result || workoutAI.result) && (
+            <div className="max-h-60 overflow-y-auto rounded-xl bg-bg-elevated p-3 text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {nutritionAI.result ?? workoutAI.result}
+            </div>
+          )}
+          {(nutritionAI.error || workoutAI.error) && (
+            <p className="text-xs text-red-400">{nutritionAI.error ?? workoutAI.error}</p>
+          )}
+
+          <button onClick={handleSave} disabled={saving}
+            className="w-full rounded-xl bg-bg-elevated py-2 text-xs text-gray-400 active:scale-95 disabled:opacity-60">
+            {saving ? "Salvando..." : saved ? "Ciclos salvos ✓" : "Salvar ciclos de renovação"}
+          </button>
+        </section>
+      )}
 
       <section className="rounded-2xl bg-bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold text-gray-300">Cálculos automáticos</h2>

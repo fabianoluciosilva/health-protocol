@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Heart, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -90,6 +91,13 @@ export default function LoginPage() {
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-500">
+          Não tem conta?{" "}
+          <Link href="/signup" className="font-medium text-accent-blue">
+            Criar conta
+          </Link>
+        </p>
       </div>
     </div>
   );
