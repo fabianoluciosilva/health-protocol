@@ -150,7 +150,7 @@ Use a ferramenta save_lab_results com todos os marcadores encontrados.`;
   // Create exam record
   const { data: examData, error: examErr } = await admin
     .from("lab_exams")
-    .insert({ exam_date: examDate, lab_name: labName })
+    .insert({ exam_date: examDate, lab_name: labName, user_id: user.id })
     .select()
     .single();
 
@@ -161,6 +161,7 @@ Use a ferramenta save_lab_results com todos os marcadores encontrados.`;
   // Insert results
   const rows = results.map((r) => ({
     exam_id: examData.id,
+    user_id: user.id,
     marker: r.marker,
     value: r.value,
     unit: r.unit || "",
