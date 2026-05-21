@@ -14,11 +14,6 @@ type Equipment = "academia" | "casa" | "ambos";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function Pill({
   label, active, onClick,
 }: { label: string; active: boolean; onClick: () => void }) {
@@ -302,7 +297,7 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setSelectedChips((prev) => {
                     const next = new Set(prev);
-                    next.has(chip) ? next.delete(chip) : next.add(chip);
+                    if (next.has(chip)) { next.delete(chip); } else { next.add(chip); }
                     return next;
                   })}
                   className={cn(
