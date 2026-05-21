@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
@@ -63,20 +63,6 @@ export default function EvolutionPage() {
       setAnalyzing(false);
     }
   }, []);
-
-  // Auto-analyze when labs tab opens and latest exam has no analysis
-  useEffect(() => {
-    if (
-      tab === "labs" &&
-      !loadingLabs &&
-      latestExam &&
-      !latestExam.ai_analysis &&
-      analysisOverride === undefined &&
-      !analyzing
-    ) {
-      runAnalysis(latestExam.id);
-    }
-  }, [tab, loadingLabs, latestExam, analysisOverride, analyzing, runAnalysis]);
 
   return (
     <div className="space-y-4 px-4 pt-4">
