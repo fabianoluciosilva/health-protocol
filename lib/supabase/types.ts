@@ -20,6 +20,12 @@ export interface Profile {
   last_workout_generated_at: string | null;
   diet_renewal_months: number;
   workout_renewal_months: number;
+  // anamnese fields (migration_v9)
+  fitness_goal: string | null;
+  training_experience: string | null;
+  training_days_per_week: number | null;
+  available_equipment: string | null;
+  health_conditions: string | null;
 }
 
 export interface Medication {

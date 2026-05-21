@@ -66,6 +66,23 @@ export async function POST(request: NextRequest) {
       ? docs.map((d) => `- [${d.doc_type}] ${d.title}${d.notes ? `: ${d.notes}` : ""}`).join("\n")
       : "Nenhum documento anexado.";
 
+  const goalLabels: Record<string, string> = {
+    perda_de_peso: "Perda de peso",
+    ganho_de_massa: "Ganho de massa muscular",
+    manutencao: "Manutenção",
+    condicionamento: "Condicionamento físico",
+  };
+  const expLabels: Record<string, string> = {
+    iniciante: "Iniciante (< 1 ano de treino)",
+    intermediario: "Intermediário (1–3 anos)",
+    avancado: "Avançado (> 3 anos)",
+  };
+  const equipLabels: Record<string, string> = {
+    academia: "Academia completa",
+    casa: "Treino em casa (sem equipamentos ou com equipamentos básicos)",
+    ambos: "Academia e casa",
+  };
+
   const baseContext = `**Dados do paciente:**
 - Nome: ${profile.name}
 - Idade: ${age} anos
@@ -73,6 +90,14 @@ export async function POST(request: NextRequest) {
 - Altura: ${profile.height_cm} cm
 - Horário de acordar: ${profile.wake_time}
 - Horário de dormir: ${profile.sleep_time}
+
+**Objetivo principal:** ${goalLabels[profile.fitness_goal ?? ""] ?? profile.fitness_goal ?? "Não informado"}
+**Dias de treino por semana:** ${profile.training_days_per_week ?? 3}
+**Experiência de treino:** ${expLabels[profile.training_experience ?? ""] ?? profile.training_experience ?? "Não informado"}
+**Equipamentos disponíveis:** ${equipLabels[profile.available_equipment ?? ""] ?? profile.available_equipment ?? "Academia"}
+
+**Condições de saúde:**
+${profile.health_conditions?.trim() || "Nenhuma informada."}
 
 **Restrições Alimentares:**
 ${profile.food_restrictions?.trim() || "Nenhuma informada."}
