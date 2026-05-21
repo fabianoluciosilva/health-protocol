@@ -120,7 +120,18 @@ function DadosTab() {
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
   };
 
-  if (loading || !profile) return <div className="h-24 animate-pulse rounded-2xl bg-bg-card" />;
+  if (loading) return <div className="h-24 animate-pulse rounded-2xl bg-bg-card" />;
+  if (!profile) return (
+    <div className="space-y-3 rounded-2xl bg-bg-card p-6 text-center">
+      <p className="text-sm text-gray-400">Perfil não encontrado.</p>
+      <button
+        onClick={reload}
+        className="rounded-xl bg-accent-blue px-4 py-2 text-xs font-semibold text-white active:scale-95"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  );
 
   const metrics = calculateProfile(Number(weight) || 0, Number(height) || 0, new Date(birthDate || profile.birth_date));
 

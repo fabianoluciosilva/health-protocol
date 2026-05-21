@@ -11,12 +11,13 @@ export function useProfile() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setProfile(null); setLoading(false); return; }
+    // getSession() lê do cache local (sem request de rede) — muito mais rápido que getUser()
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { setProfile(null); setLoading(false); return; }
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", session.user.id)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);
     setLoading(false);
