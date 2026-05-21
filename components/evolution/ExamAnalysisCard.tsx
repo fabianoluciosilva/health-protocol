@@ -1,6 +1,7 @@
 "use client";
 
-import { RefreshCw, Sparkles, TrendingDown, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { RefreshCw, Sparkles, TrendingDown, TrendingUp, AlertTriangle, CheckCircle, Plus } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import type { ExamAnalysis } from "@/lib/supabase/types";
 
@@ -9,6 +10,7 @@ interface Props {
   analysis: ExamAnalysis | null;
   analyzing: boolean;
   onAnalyze: () => void;
+  hasPrevExam?: boolean;
 }
 
 const OVERALL_CONFIG = {
@@ -36,7 +38,7 @@ function fmt(v: number) {
   return v % 1 === 0 ? String(v) : v.toFixed(2).replace(/\.?0+$/, "");
 }
 
-export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnalyze }: Props) {
+export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnalyze, hasPrevExam }: Props) {
   if (analyzing) {
     return (
       <div className="rounded-2xl border border-accent-purple/30 bg-accent-purple/5 p-5">
@@ -53,14 +55,15 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
 
   if (!analysis) {
     return (
-      <div className="rounded-2xl border border-dashed border-accent-purple/40 bg-accent-purple/5 p-5">
+      <div className="rounded-2xl border border-dashed border-accent-purple/40 bg-accent-purple/5 p-5 space-y-3">
         <div className="flex items-start gap-3">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent-purple" />
           <div className="flex-1 space-y-3">
             <div>
               <p className="text-sm font-semibold text-accent-purple">Análise por IA</p>
               <p className="text-xs text-gray-400">
-                Clique para analisar o exame de {new Date(examDate + "T12:00:00").toLocaleDateString("pt-BR")} e comparar com o anterior.
+                Clique para analisar o exame de {new Date(examDate + "T12:00:00").toLocaleDateString("pt-BR")}
+                {hasPrevExam ? " e comparar com o anterior." : "."}
               </p>
             </div>
             <button
@@ -72,6 +75,18 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
             </button>
           </div>
         </div>
+        {!hasPrevExam && (
+          <div className="flex items-center justify-between rounded-xl bg-bg-elevated px-3 py-2.5">
+            <p className="text-xs text-gray-500">Importar novo exame para comparação</p>
+            <Link
+              href="/medications/exams"
+              className="flex items-center gap-1 rounded-lg bg-accent-purple/20 px-3 py-1.5 text-xs font-semibold text-accent-purple active:scale-95"
+            >
+              <Plus className="h-3 w-3" />
+              Importar
+            </Link>
+          </div>
+        )}
       </div>
     );
   }

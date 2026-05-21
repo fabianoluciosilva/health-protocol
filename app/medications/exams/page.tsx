@@ -3,11 +3,13 @@
 import { useState } from "react";
 import ExamDashboard from "@/components/exams/ExamDashboard";
 import ExamHistory from "@/components/exams/ExamHistory";
+import AddExamForm from "@/components/exams/AddExamForm";
 import { cn } from "@/lib/utils/cn";
 
 const TABS = [
-  { key: "result", label: "Resultado Atual" },
+  { key: "result",  label: "Resultado Atual" },
   { key: "history", label: "Histórico" },
+  { key: "add",     label: "＋ Novo Exame" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["key"];
@@ -23,8 +25,10 @@ export default function ExamsPage() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              "flex-1 rounded-xl py-2 text-sm font-semibold transition-colors",
-              tab === t.key ? "bg-bg-base text-white" : "text-gray-500"
+              "flex-1 rounded-xl py-2 text-xs font-semibold transition-colors",
+              tab === t.key
+                ? t.key === "add" ? "bg-accent-purple text-white" : "bg-bg-base text-white"
+                : t.key === "add" ? "text-accent-purple" : "text-gray-500"
             )}
           >
             {t.label}
@@ -32,7 +36,11 @@ export default function ExamsPage() {
         ))}
       </div>
 
-      {tab === "result" ? <ExamDashboard /> : <ExamHistory />}
+      {tab === "result"  && <ExamDashboard />}
+      {tab === "history" && <ExamHistory />}
+      {tab === "add"     && (
+        <AddExamForm onSuccess={() => setTab("result")} />
+      )}
     </div>
   );
 }

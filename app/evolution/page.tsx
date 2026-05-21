@@ -165,6 +165,7 @@ export default function EvolutionPage() {
               examDate={latestExam.exam_date}
               analysis={displayAnalysis}
               analyzing={analyzing}
+              hasPrevExam={!!prevExam}
               onAnalyze={() => {
                 setAnalysisOverride(undefined);
                 runAnalysis(latestExam.id);
