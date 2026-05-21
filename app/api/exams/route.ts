@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   let examQuery = admin
     .from("lab_exams")
     .select("*")
+    .eq("user_id", user.id)
     .order("exam_date", { ascending: false });
 
   if (latestOnly) examQuery = examQuery.limit(1);

@@ -91,8 +91,14 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
     );
   }
 
-  const cfg = OVERALL_CONFIG[analysis.overall];
+  const cfg = OVERALL_CONFIG[analysis.overall] ?? OVERALL_CONFIG.atencao;
   const Icon = cfg.icon;
+
+  const criticos = analysis.criticos ?? [];
+  const piorou = analysis.piorou ?? [];
+  const melhorou = analysis.melhorou ?? [];
+  const normais = analysis.normais ?? [];
+  const recomendacoes = analysis.recomendacoes ?? [];
 
   return (
     <div className="space-y-3">
@@ -118,13 +124,13 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
       </div>
 
       {/* Críticos */}
-      {analysis.criticos.length > 0 && (
+      {criticos.length > 0 && (
         <section className="rounded-2xl bg-bg-card p-4 space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-red-400">
             Marcadores fora do padrão
           </h3>
           <div className="space-y-2">
-            {analysis.criticos.map((c) => (
+            {criticos.map((c) => (
               <div key={c.marker} className="rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold text-white">{c.marker}</span>
@@ -143,14 +149,14 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
       )}
 
       {/* Piorou */}
-      {analysis.piorou.length > 0 && (
+      {piorou.length > 0 && (
         <section className="rounded-2xl bg-bg-card p-4 space-y-2">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">
             <TrendingUp className="h-3.5 w-3.5 text-red-400" />
             Piorou vs exame anterior
           </h3>
           <div className="space-y-1.5">
-            {analysis.piorou.map((d) => (
+            {piorou.map((d) => (
               <div key={d.marker} className="flex items-center justify-between gap-2 rounded-xl bg-amber-400/5 px-3 py-2">
                 <span className="text-sm text-white">{d.marker}</span>
                 <div className="flex items-center gap-2 text-xs text-gray-400 shrink-0">
@@ -164,14 +170,14 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
       )}
 
       {/* Melhorou */}
-      {analysis.melhorou.length > 0 && (
+      {melhorou.length > 0 && (
         <section className="rounded-2xl bg-bg-card p-4 space-y-2">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
             <TrendingDown className="h-3.5 w-3.5 rotate-180 text-emerald-400" />
             Melhorou vs exame anterior
           </h3>
           <div className="space-y-1.5">
-            {analysis.melhorou.map((d) => (
+            {melhorou.map((d) => (
               <div key={d.marker} className="flex items-center justify-between gap-2 rounded-xl bg-emerald-400/5 px-3 py-2">
                 <span className="text-sm text-white">{d.marker}</span>
                 <div className="flex items-center gap-2 text-xs text-gray-400 shrink-0">
@@ -185,13 +191,13 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
       )}
 
       {/* Recomendações */}
-      {analysis.recomendacoes.length > 0 && (
+      {recomendacoes.length > 0 && (
         <section className="rounded-2xl bg-bg-card p-4 space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-accent-blue">
             Recomendações
           </h3>
           <ul className="space-y-1.5">
-            {analysis.recomendacoes.map((r, i) => (
+            {recomendacoes.map((r, i) => (
               <li key={i} className="flex gap-2 text-xs text-gray-300 leading-relaxed">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-blue mt-1.5" />
                 {r}
@@ -202,13 +208,13 @@ export default function ExamAnalysisCard({ examDate, analysis, analyzing, onAnal
       )}
 
       {/* Normais */}
-      {analysis.normais.length > 0 && (
+      {normais.length > 0 && (
         <details className="rounded-2xl bg-bg-card p-4">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-gray-500 select-none">
-            Dentro da faixa normal ({analysis.normais.length})
+            Dentro da faixa normal ({normais.length})
           </summary>
           <p className="mt-2 text-xs leading-relaxed text-gray-500">
-            {analysis.normais.join(" · ")}
+            {normais.join(" · ")}
           </p>
         </details>
       )}
