@@ -163,7 +163,7 @@ Use a ferramenta save_nutrition_plan para retornar o plano.`;
         messages: [{ role: "user", content: prompt }],
       });
 
-      const toolUse = response.content.find((c) => c.type === "tool_use");
+      const toolUse = response.content.find((c: { type: string }) => c.type === "tool_use");
       if (!toolUse || toolUse.type !== "tool_use") {
         return NextResponse.json({ message: "IA não retornou plano estruturado." }, { status: 500 });
       }
@@ -282,7 +282,7 @@ Use a ferramenta save_workout_plan para retornar o plano.`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const toolUse = response.content.find((c) => c.type === "tool_use");
+    const toolUse = response.content.find((c: { type: string }) => c.type === "tool_use");
     if (!toolUse || toolUse.type !== "tool_use") {
       return NextResponse.json({ message: "IA não retornou plano estruturado." }, { status: 500 });
     }

@@ -192,7 +192,7 @@ Use a ferramenta save_exam_analysis para retornar a análise estruturada. Seja o
     messages: [{ role: "user", content: prompt }],
   });
 
-  const toolBlock = response.content.find((b) => b.type === "tool_use");
+  const toolBlock = response.content.find((b: { type: string }) => b.type === "tool_use");
   if (!toolBlock || toolBlock.type !== "tool_use") {
     return NextResponse.json({ error: "IA não retornou análise estruturada." }, { status: 500 });
   }
