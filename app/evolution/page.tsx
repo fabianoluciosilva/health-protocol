@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TrendingUp, Scale, Ruler, FlaskConical, User } from "lucide-react";
+import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
@@ -20,6 +20,14 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]["key"];
 
+function fmtDate(iso: string) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function EvolutionPage() {
   const [tab, setTab] = useState<Tab>("weight");
   const [analyzing, setAnalyzing] = useState(false);
@@ -32,6 +40,7 @@ export default function EvolutionPage() {
   const { entries, timelines, loading: loadingLabs } = useExamHistory();
 
   const latestExam = entries[0]?.exam ?? null;
+  const prevExam = entries[1]?.exam ?? null;
 
   // Analysis to display: prefer local override, fall back to DB value
   const displayAnalysis =
@@ -46,10 +55,10 @@ export default function EvolutionPage() {
         body: JSON.stringify({ examId }),
       });
       if (!res.ok) return;
-      const { analysis } = await res.json() as { examId: string; analysis: ExamAnalysis };
+      const { analysis } = (await res.json()) as { examId: string; analysis: ExamAnalysis };
       setAnalysisOverride(analysis);
     } catch {
-      // silently fail — user can retry via button
+      // silently fail — user can retry
     } finally {
       setAnalyzing(false);
     }
@@ -133,6 +142,25 @@ export default function EvolutionPage() {
           </div>
         ) : (
           <div className="space-y-4 pb-4">
+            {/* Cabeçalho dos exames sendo comparados */}
+            <div className="flex items-center justify-between rounded-2xl bg-bg-card px-4 py-3">
+              <div className="text-xs text-gray-400">
+                {prevExam ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-gray-300">{fmtDate(prevExam.exam_date)}</span>
+                    <ArrowRight className="h-3 w-3 text-gray-600" />
+                    <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
+                  </span>
+                ) : (
+                  <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
+                )}
+              </div>
+              <span className="text-[10px] text-gray-600">
+                {entries.length} {entries.length === 1 ? "exame" : "exames"}
+              </span>
+            </div>
+
+            {/* Análise por IA */}
             <ExamAnalysisCard
               examDate={latestExam.exam_date}
               analysis={displayAnalysis}
@@ -142,7 +170,16 @@ export default function EvolutionPage() {
                 runAnalysis(latestExam.id);
               }}
             />
-            {timelines.length > 0 && <LabTrendTable timelines={timelines} />}
+
+            {/* Tabela de tendências — mostra todos os marcadores com histórico */}
+            {timelines.length > 0 && (
+              <div className="space-y-2">
+                <p className="px-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Evolução por marcador
+                </p>
+                <LabTrendTable timelines={timelines} />
+              </div>
+            )}
           </div>
         )
       )}
