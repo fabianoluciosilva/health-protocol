@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Play, AlertTriangle, Dumbbell } from "lucide-react";
 import type { MuscleGroup, SplitExercise, WorkoutSplit, WorkoutSession } from "@/lib/supabase/types";
 import ExerciseCard from "./ExerciseCard";
@@ -19,6 +19,9 @@ interface Props {
   onSelectSplit: (id: string | undefined) => void;
   onStart: () => void;
   bodyWeightKg?: number;
+  selectedGroups: Set<string>;
+  onToggleGroup: (name: string) => void;
+  onClearGroups: () => void;
 }
 
 export default function TodayWorkout({
@@ -32,9 +35,10 @@ export default function TodayWorkout({
   onSelectSplit,
   onStart,
   bodyWeightKg = 130,
+  selectedGroups,
+  onToggleGroup,
+  onClearGroups,
 }: Props) {
-  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
-
   const todayDow = date.getDay() + 1;
   const trainingSplits = splits.filter((s) => !s.is_rest_day);
 
@@ -58,15 +62,6 @@ export default function TodayWorkout({
       return name && selectedGroups.has(name);
     });
   }, [splitExercises, selectedGroups]);
-
-  function toggleGroup(name: string) {
-    setSelectedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }
   const nextWorkoutDay = useMemo(() => {
     if (!splits.length) return "";
     const dow = date.getDay() + 1;
@@ -214,7 +209,7 @@ export default function TodayWorkout({
               return (
                 <button
                   key={mg.id}
-                  onClick={() => toggleGroup(mg.name)}
+                  onClick={() => onToggleGroup(mg.name)}
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
                     active ? "text-white" : "bg-bg-card text-gray-400"
                   }`}
@@ -225,8 +220,9 @@ export default function TodayWorkout({
               );
             })}
             {selectedGroups.size > 0 && (
+
               <button
-                onClick={() => setSelectedGroups(new Set())}
+                onClick={onClearGroups}
                 className="rounded-xl bg-bg-elevated px-3 py-1.5 text-xs text-gray-500"
               >
                 Limpar

@@ -18,8 +18,33 @@ import { cn } from "@/lib/utils/cn";
 export default function SessionPage() {
   const now = useMemo(() => new Date(), []);
   const router = useRouter();
-  const { todaySplit, splitExercises, loading: loadingSplit } = useTodayWorkout(now);
-  const { session, completeSession, cancelSession, reload: reloadSession } = useWorkoutSession(now, todaySplit?.id);
+
+  // Carrega a sessão de hoje primeiro; split_id vem dela, não de "hoje"
+  const { session, completeSession, cancelSession, reload: reloadSession } = useWorkoutSession(now, undefined);
+
+  // Usa o split gravado na sessão para carregar os exercícios corretos
+  const { todaySplit, splitExercises, loading: loadingSplit } = useTodayWorkout(now, session?.split_id ?? undefined);
+
+  // Lê o filtro de grupos musculares gravado antes de iniciar o treino
+  const [groupFilter] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = sessionStorage.getItem("workout_group_filter");
+      if (stored) {
+        sessionStorage.removeItem("workout_group_filter");
+        return new Set(JSON.parse(stored) as string[]);
+      }
+    } catch {}
+    return new Set();
+  });
+
+  const filteredExercises = useMemo(() => {
+    if (groupFilter.size === 0) return splitExercises;
+    return splitExercises.filter((se) => {
+      const name = se.exercise?.muscle_group?.name;
+      return name && groupFilter.has(name);
+    });
+  }, [splitExercises, groupFilter]);
   const { logs, upsertLog, saveWeightHistory, reload: reloadLogs } = useExerciseLog(session?.id);
   const timer = useRestTimer();
 
@@ -29,7 +54,7 @@ export default function SessionPage() {
   const [prevWeights] = useState<Record<string, number>>({});
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
-  const activeExercise = splitExercises[activeIdx]?.exercise;
+  const activeExercise = filteredExercises[activeIdx]?.exercise;
   const activeWeight = activeExercise ? (weights[activeExercise.id] ?? 0) : 0;
   const completedCount = logs.filter((l) => l.completed).length;
 
@@ -51,10 +76,10 @@ export default function SessionPage() {
       await saveWeightHistory(activeExercise.id, weight, now);
     }
     timer.start(activeExercise.rest_seconds);
-    if (activeIdx < splitExercises.length - 1) {
+    if (activeIdx < filteredExercises.length - 1) {
       setActiveIdx((i) => i + 1);
     }
-  }, [activeExercise, session, weights, upsertLog, saveWeightHistory, now, timer, activeIdx, splitExercises.length]);
+  }, [activeExercise, session, weights, upsertLog, saveWeightHistory, now, timer, activeIdx, filteredExercises.length]);
 
   const handleFinish = useCallback(async () => {
     await completeSession();
@@ -79,7 +104,7 @@ export default function SessionPage() {
     );
   }
 
-  if (!todaySplit || splitExercises.length === 0) {
+  if (!todaySplit || filteredExercises.length === 0) {
     return (
       <div className="px-4 pt-4 text-center text-gray-400">
         Nenhum exercício carregado.{" "}
@@ -101,7 +126,7 @@ export default function SessionPage() {
     );
   }
 
-  const allDone = completedIds.size >= splitExercises.length;
+  const allDone = completedIds.size >= filteredExercises.length;
 
   return (
     <div className="space-y-4 px-4 pt-4">
@@ -144,11 +169,11 @@ export default function SessionPage() {
         </button>
       </header>
 
-      <ProgressBar done={completedCount} total={splitExercises.length} />
+      <ProgressBar done={completedCount} total={filteredExercises.length} />
 
       <div className="space-y-1 rounded-2xl bg-bg-card p-4">
         <div className="text-xs uppercase tracking-wider text-gray-500">
-          Série — Exercício {activeIdx + 1} de {splitExercises.length}
+          Série — Exercício {activeIdx + 1} de {filteredExercises.length}
         </div>
         <h2 className="text-xl font-bold text-white">{activeExercise?.name}</h2>
         <p className="text-sm text-gray-400">
@@ -206,7 +231,7 @@ export default function SessionPage() {
       )}
 
       <div className="flex gap-2">
-        {splitExercises.map((se, i) => (
+        {filteredExercises.map((se, i) => (
           <button
             key={se.id}
             onClick={() => setActiveIdx(i)}
