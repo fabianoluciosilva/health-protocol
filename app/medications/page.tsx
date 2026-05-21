@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
+import { FlaskConical } from "lucide-react";
 import Header from "@/components/medications/Header";
 import ProfileSummary from "@/components/medications/ProfileSummary";
 import MondayAlert from "@/components/medications/MondayAlert";
@@ -32,6 +34,20 @@ export default function MedicationsPage() {
       {showMondayAlert && <MondayAlert count={todaySlots.length} />}
 
       <BloodPressureCard />
+
+      <Link
+        href="/medications/exams"
+        className="flex items-center gap-3 rounded-2xl bg-bg-card px-4 py-3 active:scale-[0.98] transition-transform"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-blue/10">
+          <FlaskConical className="h-4 w-4 text-accent-blue" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white">Exames Laboratoriais</p>
+          <p className="text-xs text-gray-500">Ver resultados · Importar novo exame</p>
+        </div>
+        <span className="text-xs text-gray-600">›</span>
+      </Link>
 
       <DailyTimeline />
     </div>

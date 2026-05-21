@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight } from "lucide-react";
+import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
@@ -159,6 +159,21 @@ export default function EvolutionPage() {
                 {entries.length} {entries.length === 1 ? "exame" : "exames"}
               </span>
             </div>
+
+            {/* Botão importar novo exame */}
+            {!prevExam && (
+              <Link
+                href="/medications/exams"
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-accent-blue/40 bg-accent-blue/5 px-4 py-3 active:scale-[0.98] transition-transform"
+              >
+                <Plus className="h-4 w-4 shrink-0 text-accent-blue" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-accent-blue">Importar exame de maio</p>
+                  <p className="text-[11px] text-gray-500">Upload do PDF → IA extrai todos os marcadores</p>
+                </div>
+                <span className="text-xs text-gray-600">›</span>
+              </Link>
+            )}
 
             {/* Análise por IA */}
             <ExamAnalysisCard
