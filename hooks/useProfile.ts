@@ -11,15 +11,32 @@ export function useProfile() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // getSession() lê do cache local (sem request de rede) — muito mais rápido que getUser()
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) { setProfile(null); setLoading(false); return; }
-    const { data } = await supabase
+
+    // Tenta pelo id = auth uuid (caso normal)
+    const { data: byId } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
       .maybeSingle();
-    setProfile((data as Profile | null) ?? null);
+
+    if (byId) {
+      setProfile(byId as Profile);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: perfil semente criado antes do auth (id = uuid aleatório).
+    // RLS está desabilitado, então é seguro pegar o perfil mais antigo.
+    const { data: oldest } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    setProfile((oldest as Profile | null) ?? null);
     setLoading(false);
   }, [supabase]);
 
