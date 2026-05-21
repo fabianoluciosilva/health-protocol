@@ -58,11 +58,38 @@ export interface MedicationLog {
   created_at: string;
 }
 
+export interface ExamAnalysisCritical {
+  marker: string;
+  valor: number;
+  unidade: string;
+  status: "high" | "low";
+  explicacao: string;
+}
+
+export interface ExamAnalysisDelta {
+  marker: string;
+  anterior: number;
+  atual: number;
+  unidade: string;
+  comentario: string;
+}
+
+export interface ExamAnalysis {
+  summary: string;
+  overall: "bom" | "atencao" | "critico";
+  criticos: ExamAnalysisCritical[];
+  melhorou: ExamAnalysisDelta[];
+  piorou: ExamAnalysisDelta[];
+  normais: string[];
+  recomendacoes: string[];
+}
+
 export interface LabExam {
   id: string;
   exam_date: string;
   lab_name: string | null;
   created_at: string;
+  ai_analysis: ExamAnalysis | null;
 }
 
 export interface LabResult {
