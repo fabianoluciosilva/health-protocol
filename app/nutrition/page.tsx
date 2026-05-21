@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
 import Header from "@/components/nutrition/Header";
 import MacroSummary from "@/components/nutrition/MacroSummary";
 import WaterTracker from "@/components/nutrition/WaterTracker";
@@ -30,18 +32,33 @@ export default function NutritionPage() {
 
   return (
     <div className="space-y-4 px-4 pt-4">
-      {loadingProfile || !profile ? (
-        <div className="h-16 animate-pulse rounded-2xl bg-bg-card" />
-      ) : (
-        <Header name={profile.name} date={now} isTrainingDay={isTraining} onToggleTraining={toggleTraining} />
-      )}
+      {/* Header row: saudação + botão de compras sempre visível */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {loadingProfile || !profile ? (
+            <div className="h-16 animate-pulse rounded-2xl bg-bg-card" />
+          ) : (
+            <Header name={profile.name} date={now} isTrainingDay={isTraining} onToggleTraining={toggleTraining} />
+          )}
+        </div>
+        <Link
+          href="/nutrition/shopping"
+          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-full bg-bg-card px-3 py-1.5 text-xs font-medium text-gray-300 active:scale-95"
+        >
+          <ShoppingCart className="h-3.5 w-3.5 text-accent-green" />
+          Compras
+        </Link>
+      </div>
 
-      {goals && (
+      {/* MacroSummary: sempre visível — skeleton durante loading, valores reais após */}
+      {loadingProfile ? (
+        <div className="h-24 animate-pulse rounded-2xl bg-bg-card" />
+      ) : (
         <MacroSummary
           calories={macros.calories}
-          caloriesGoal={goals.targetCalories}
+          caloriesGoal={goals?.targetCalories ?? 2000}
           protein={macros.protein}
-          proteinGoal={goals.proteinGoal}
+          proteinGoal={goals?.proteinGoal ?? 150}
         />
       )}
 

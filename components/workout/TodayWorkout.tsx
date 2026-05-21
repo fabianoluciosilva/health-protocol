@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Play, AlertTriangle, Dumbbell } from "lucide-react";
-import type { SplitExercise, WorkoutSplit, WorkoutSession } from "@/lib/supabase/types";
+import type { MuscleGroup, SplitExercise, WorkoutSplit, WorkoutSession } from "@/lib/supabase/types";
 import ExerciseCard from "./ExerciseCard";
 import RestDayCard from "./RestDayCard";
 import { dayNameBR, estimateWorkoutDuration, WORKOUT_ALERTS } from "@/lib/utils/workout";
@@ -33,8 +33,40 @@ export default function TodayWorkout({
   onStart,
   bodyWeightKg = 130,
 }: Props) {
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+
   const todayDow = date.getDay() + 1;
   const trainingSplits = splits.filter((s) => !s.is_rest_day);
+
+  const uniqueMuscleGroups = useMemo((): MuscleGroup[] => {
+    const seen = new Set<string>();
+    const groups: MuscleGroup[] = [];
+    for (const se of splitExercises) {
+      const mg = se.exercise?.muscle_group;
+      if (mg && !seen.has(mg.id)) {
+        seen.add(mg.id);
+        groups.push(mg);
+      }
+    }
+    return groups;
+  }, [splitExercises]);
+
+  const visibleExercises = useMemo(() => {
+    if (selectedGroups.size === 0) return splitExercises;
+    return splitExercises.filter((se) => {
+      const name = se.exercise?.muscle_group?.name;
+      return name && selectedGroups.has(name);
+    });
+  }, [splitExercises, selectedGroups]);
+
+  function toggleGroup(name: string) {
+    setSelectedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
   const nextWorkoutDay = useMemo(() => {
     if (!splits.length) return "";
     const dow = date.getDay() + 1;
@@ -173,9 +205,47 @@ export default function TodayWorkout({
         </div>
       </div>
 
+      {uniqueMuscleGroups.length > 1 && (
+        <div className="space-y-2">
+          <p className="px-1 text-xs text-gray-500">Filtrar por grupo muscular</p>
+          <div className="flex flex-wrap gap-2">
+            {uniqueMuscleGroups.map((mg) => {
+              const active = selectedGroups.has(mg.name);
+              return (
+                <button
+                  key={mg.id}
+                  onClick={() => toggleGroup(mg.name)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    active ? "text-white" : "bg-bg-card text-gray-400"
+                  }`}
+                  style={active ? { backgroundColor: mg.color } : undefined}
+                >
+                  {mg.name}
+                </button>
+              );
+            })}
+            {selectedGroups.size > 0 && (
+              <button
+                onClick={() => setSelectedGroups(new Set())}
+                className="rounded-xl bg-bg-elevated px-3 py-1.5 text-xs text-gray-500"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
-        <h3 className="px-1 text-sm font-semibold text-gray-300">Exercícios de hoje</h3>
-        {splitExercises.map((se, i) => (
+        <h3 className="px-1 text-sm font-semibold text-gray-300">
+          Exercícios de hoje
+          {selectedGroups.size > 0 && (
+            <span className="ml-2 text-xs font-normal text-gray-500">
+              ({visibleExercises.length} de {splitExercises.length})
+            </span>
+          )}
+        </h3>
+        {visibleExercises.map((se, i) => (
           <ExerciseCard
             key={se.id}
             splitExercise={se}
@@ -183,6 +253,11 @@ export default function TodayWorkout({
             bodyWeightKg={bodyWeightKg}
           />
         ))}
+        {visibleExercises.length === 0 && (
+          <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
+            Nenhum exercício para os grupos selecionados.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Pill, Salad, Dumbbell, User } from "lucide-react";
+import { Pill, Salad, Dumbbell, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const items = [
   { href: "/medications", label: "Remédios", icon: Pill },
   { href: "/nutrition", label: "Nutrição", icon: Salad },
   { href: "/workout", label: "Treino", icon: Dumbbell },
-  { href: "/profile", label: "Perfil", icon: User },
+  { href: "/evolution", label: "Evolução", icon: TrendingUp },
 ];
 
 export default function BottomNav() {

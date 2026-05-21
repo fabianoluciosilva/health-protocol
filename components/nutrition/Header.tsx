@@ -1,7 +1,6 @@
 "use client";
 
-import { Dumbbell, Bed, ShoppingCart } from "lucide-react";
-import Link from "next/link";
+import { Dumbbell, Bed } from "lucide-react";
 import { dateLabelBR, dayNameBR, greetingBR } from "@/lib/utils/dates";
 
 interface Props {
@@ -14,22 +13,13 @@ interface Props {
 export default function Header({ name, date, isTrainingDay, onToggleTraining }: Props) {
   return (
     <header className="space-y-2">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white">
-            {greetingBR(date)}, {name} <span aria-hidden>👋</span>
-          </h1>
-          <p className="mt-0.5 text-xs text-gray-400">
-            {dayNameBR(date)} · {dateLabelBR(date)}
-          </p>
-        </div>
-        <Link
-          href="/nutrition/shopping"
-          className="flex items-center gap-1.5 rounded-full bg-bg-card px-3 py-1.5 text-xs font-medium text-gray-300 active:scale-95"
-        >
-          <ShoppingCart className="h-3.5 w-3.5 text-accent-green" />
-          Compras
-        </Link>
+      <div>
+        <h1 className="text-xl font-semibold text-white">
+          {greetingBR(date)}, {name} <span aria-hidden>👋</span>
+        </h1>
+        <p className="mt-0.5 text-xs text-gray-400">
+          {dayNameBR(date)} · {dateLabelBR(date)}
+        </p>
       </div>
       <button
         onClick={() => onToggleTraining(!isTrainingDay)}
