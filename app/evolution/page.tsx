@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { TrendingUp, Scale, Ruler, FlaskConical, User, ArrowRight, Plus, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
@@ -10,6 +10,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { calculateProfile } from "@/lib/utils/profile";
 import WeightChart from "@/components/evolution/WeightChart";
 import MeasurementsTable from "@/components/evolution/MeasurementsTable";
+import CompositionCard from "@/components/evolution/CompositionCard";
+import CompositionImportForm from "@/components/evolution/CompositionImportForm";
 import LabTrendTable from "@/components/evolution/LabTrendTable";
 import ExamAnalysisCard from "@/components/evolution/ExamAnalysisCard";
 import type { ExamAnalysis } from "@/lib/supabase/types";
@@ -48,8 +50,8 @@ export default function EvolutionPage() {
   );
 
   const { profile, reload: reloadProfile } = useProfile();
-  const { logs: weightLogs, loading: loadingWeight, addLog: addWeight, removeLog: removeWeight } = useBodyWeightLogs(30);
-  const { logs: measurements, loading: loadingMeasures, addMeasurement, removeLog: removeMeasure } = useBodyMeasurements(10);
+  const { logs: weightLogs, loading: loadingWeight, addLog: addWeight, removeLog: removeWeight, reload: reloadWeight } = useBodyWeightLogs(30);
+  const { logs: measurements, loading: loadingMeasures, addMeasurement, removeLog: removeMeasure, reload: reloadMeasures } = useBodyMeasurements(10);
   const { entries, timelines, loading: loadingLabs } = useExamHistory();
 
   const latestExam = entries[0]?.exam ?? null;
@@ -100,19 +102,27 @@ export default function EvolutionPage() {
 
   // ── Formulário de medidas ───────────────────────────────────────────
   const [showMeasureForm, setShowMeasureForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [mDate, setMDate] = useState(todayISO());
   const [mWaist, setMWaist] = useState("");
   const [mChest, setMChest] = useState("");
   const [mHips, setMHips] = useState("");
   const [mArm, setMArm] = useState("");
+  const [mForearm, setMForearm] = useState("");
   const [mThigh, setMThigh] = useState("");
+  const [mCalf, setMCalf] = useState("");
   const [mNeck, setMNeck] = useState("");
   const [savingM, setSavingM] = useState(false);
 
   const num = (v: string) => (v.trim() ? Number(v.replace(",", ".")) : null);
 
+  const handleImportSuccess = async () => {
+    setShowImport(false);
+    await Promise.all([reloadMeasures(), reloadWeight(), reloadProfile()]);
+  };
+
   const handleAddMeasure = async () => {
-    if (!mWaist && !mChest && !mHips && !mArm && !mThigh && !mNeck) return;
+    if (!mWaist && !mChest && !mHips && !mArm && !mForearm && !mThigh && !mCalf && !mNeck) return;
     setSavingM(true);
     await addMeasurement({
       log_date: mDate,
@@ -120,11 +130,13 @@ export default function EvolutionPage() {
       chest_cm: num(mChest),
       hips_cm: num(mHips),
       arm_cm: num(mArm),
+      forearm_cm: num(mForearm),
       thigh_cm: num(mThigh),
+      calf_cm: num(mCalf),
       neck_cm: num(mNeck),
       notes: null,
     });
-    setMWaist(""); setMChest(""); setMHips(""); setMArm(""); setMThigh(""); setMNeck("");
+    setMWaist(""); setMChest(""); setMHips(""); setMArm(""); setMForearm(""); setMThigh(""); setMCalf(""); setMNeck("");
     setShowMeasureForm(false); setSavingM(false);
   };
 
@@ -228,10 +240,18 @@ export default function EvolutionPage() {
 
       {tab === "measurements" && (
         <div className="space-y-3">
-          {/* Cadastro de medidas */}
-          <button onClick={() => setShowMeasureForm((v) => !v)}
+          {/* Importar avaliação (PDF) com IA */}
+          <button onClick={() => { setShowImport((v) => !v); setShowMeasureForm(false); }}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent-purple/15 border border-accent-purple/30 py-3 text-sm font-semibold text-accent-purple active:scale-[0.98]">
+            <FileText className="h-4 w-4" /> Importar avaliação (PDF)
+          </button>
+
+          {showImport && <CompositionImportForm onSuccess={handleImportSuccess} />}
+
+          {/* Cadastro manual de medidas */}
+          <button onClick={() => { setShowMeasureForm((v) => !v); setShowImport(false); }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-700 py-3 text-sm font-medium text-gray-400 active:bg-bg-card">
-            <Plus className="h-4 w-4" /> Registrar medidas
+            <Plus className="h-4 w-4" /> Registrar medidas manualmente
           </button>
 
           {showMeasureForm && (
@@ -239,7 +259,7 @@ export default function EvolutionPage() {
               <input type="date" value={mDate} onChange={(e) => setMDate(e.target.value)}
                 className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-blue" />
               <div className="grid grid-cols-2 gap-2">
-                {([["Cintura", mWaist, setMWaist], ["Peito", mChest, setMChest], ["Quadril", mHips, setMHips], ["Braço", mArm, setMArm], ["Coxa", mThigh, setMThigh], ["Pescoço", mNeck, setMNeck]] as const).map(([label, val, setter]) => (
+                {([["Cintura", mWaist, setMWaist], ["Peito", mChest, setMChest], ["Quadril", mHips, setMHips], ["Braço", mArm, setMArm], ["Antebraço", mForearm, setMForearm], ["Coxa", mThigh, setMThigh], ["Panturrilha", mCalf, setMCalf], ["Pescoço", mNeck, setMNeck]] as const).map(([label, val, setter]) => (
                   <label key={label} className="block">
                     <span className="mb-1 block text-[10px] uppercase text-gray-500">{label}</span>
                     <input type="number" inputMode="decimal" step="0.1" placeholder="cm" value={val}
@@ -262,7 +282,10 @@ export default function EvolutionPage() {
           {loadingMeasures ? (
             <div className="h-48 animate-pulse rounded-2xl bg-bg-card" />
           ) : (
-            <MeasurementsTable logs={measurements} />
+            <>
+              <CompositionCard logs={measurements} />
+              <MeasurementsTable logs={measurements} />
+            </>
           )}
 
           {/* Lista para remover registros */}

@@ -6,15 +6,17 @@ interface Props {
   logs: BodyMeasurement[];
 }
 
-type MeasureKey = "waist_cm" | "chest_cm" | "hips_cm" | "arm_cm" | "thigh_cm" | "neck_cm";
+type MeasureKey = "waist_cm" | "chest_cm" | "hips_cm" | "arm_cm" | "forearm_cm" | "thigh_cm" | "calf_cm" | "neck_cm";
 
 const FIELDS: { key: MeasureKey; label: string; icon: string; lowerIsBetter?: boolean }[] = [
-  { key: "waist_cm",  label: "Cintura",  icon: "📏", lowerIsBetter: true },
-  { key: "chest_cm",  label: "Peito",    icon: "💪" },
-  { key: "hips_cm",   label: "Quadril",  icon: "📐", lowerIsBetter: true },
-  { key: "arm_cm",    label: "Braço",    icon: "💪" },
-  { key: "thigh_cm",  label: "Coxa",     icon: "🦵" },
-  { key: "neck_cm",   label: "Pescoço",  icon: "📏" },
+  { key: "waist_cm",    label: "Cintura",     icon: "📏", lowerIsBetter: true },
+  { key: "chest_cm",    label: "Peito",       icon: "💪" },
+  { key: "hips_cm",     label: "Quadril",     icon: "📐", lowerIsBetter: true },
+  { key: "arm_cm",      label: "Braço",       icon: "💪" },
+  { key: "forearm_cm",  label: "Antebraço",   icon: "💪" },
+  { key: "thigh_cm",    label: "Coxa",        icon: "🦵" },
+  { key: "calf_cm",     label: "Panturrilha", icon: "🦵" },
+  { key: "neck_cm",     label: "Pescoço",     icon: "📏" },
 ];
 
 export default function MeasurementsTable({ logs }: Props) {

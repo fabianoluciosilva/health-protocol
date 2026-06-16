@@ -54,7 +54,7 @@ export function useBodyWeightLogs(limit = 20) {
     await syncProfileWeight();
   }, [supabase, load, syncProfileWeight]);
 
-  return { logs, loading, addLog, removeLog };
+  return { logs, loading, addLog, removeLog, reload: load };
 }
 
 // Peso mais recente registrado (por data). Fonte de verdade para os "informes".
@@ -115,5 +115,5 @@ export function useBodyMeasurements(limit = 10) {
     await load();
   }, [supabase, load]);
 
-  return { logs, loading, addMeasurement, removeLog };
+  return { logs, loading, addMeasurement, removeLog, reload: load };
 }

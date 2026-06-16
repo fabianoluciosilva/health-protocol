@@ -258,6 +258,20 @@ export interface BodyMeasurement {
   arm_cm: number | null;
   thigh_cm: number | null;
   neck_cm: number | null;
+  // composição corporal (migration_v11)
+  forearm_cm?: number | null;
+  calf_cm?: number | null;
+  body_fat_pct?: number | null;
+  lean_mass_kg?: number | null;
+  fat_mass_kg?: number | null;
+  body_water_l?: number | null;
+  body_water_pct?: number | null;
+  rmr_kcal?: number | null;
+  waist_height_ratio?: number | null;
+  waist_hip_ratio?: number | null;
+  conicity_index?: number | null;
+  shaped_score?: number | null;
+  source?: string | null;
   notes: string | null;
   created_at: string;
 }

@@ -13,6 +13,7 @@ import { calculateProfile } from "@/lib/utils/profile";
 import { cn } from "@/lib/utils/cn";
 import WeightChart from "@/components/evolution/WeightChart";
 import MeasurementsTable from "@/components/evolution/MeasurementsTable";
+import CompositionCard from "@/components/evolution/CompositionCard";
 import type { ProfileDocument, Medication, Frequency } from "@/lib/supabase/types";
 
 const TABS = [
@@ -662,7 +663,10 @@ function EvolucaoTab() {
       {loadingM ? (
         <div className="h-40 animate-pulse rounded-2xl bg-bg-card" />
       ) : (
-        <MeasurementsTable logs={measures} />
+        <>
+          <CompositionCard logs={measures} />
+          <MeasurementsTable logs={measures} />
+        </>
       )}
     </div>
   );
