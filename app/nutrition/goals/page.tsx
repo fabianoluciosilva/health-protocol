@@ -4,21 +4,24 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { ArrowLeft, Beef, Wheat, Salad, Droplet, Target, Flame, Activity } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
+import { useLatestWeight } from "@/hooks/useBodyMetrics";
 import { calculateNutritionGoals } from "@/lib/utils/profile";
 
 export default function GoalsPage() {
   const { profile, loading } = useProfile();
+  const { weight: latestWeight } = useLatestWeight();
+
+  const weightKg = profile ? (latestWeight ?? Number(profile.weight_kg)) : 0;
 
   const goals = useMemo(() => {
     if (!profile) return null;
-    return calculateNutritionGoals(Number(profile.weight_kg), Number(profile.height_cm), new Date(profile.birth_date));
-  }, [profile]);
+    return calculateNutritionGoals(weightKg, Number(profile.height_cm), new Date(profile.birth_date));
+  }, [profile, weightKg]);
 
   if (loading || !profile || !goals) {
     return <div className="px-4 pt-4"><div className="h-40 animate-pulse rounded-2xl bg-bg-card" /></div>;
   }
 
-  const weightKg = Number(profile.weight_kg);
   const loss = weightKg - goals.targetWeight;
   const weeksToGoal = Math.round((loss * 1000) / 800);
   const heightM = Number(profile.height_cm) / 100;

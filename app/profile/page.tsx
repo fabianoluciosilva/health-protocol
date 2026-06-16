@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { useDocuments, daysRemaining } from "@/hooks/useDocuments";
-import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
+import { useBodyWeightLogs, useBodyMeasurements, useLatestWeight } from "@/hooks/useBodyMetrics";
 import { useMedications } from "@/hooks/useMedications";
 import { calculateProfile } from "@/lib/utils/profile";
 import { cn } from "@/lib/utils/cn";
@@ -61,18 +61,20 @@ function DadosTab() {
   const [saved, setSaved] = useState(false);
   const nutritionAI = useAIGenerate("nutrition");
   const workoutAI = useAIGenerate("workout");
+  const { weight: latestWeight } = useLatestWeight();
 
   useEffect(() => {
     if (!profile) return;
     setName(profile.name);
-    setWeight(String(profile.weight_kg));
+    // Peso de referência = último registro de evolução; fallback para o perfil.
+    setWeight(String(latestWeight ?? profile.weight_kg));
     setHeight(String(profile.height_cm));
     setBirthDate(profile.birth_date);
     setWake(profile.wake_time.slice(0, 5));
     setSleep(profile.sleep_time.slice(0, 5));
     setFoodRestrictions(profile.food_restrictions ?? "");
     setMobilityRestrictions(profile.mobility_restrictions ?? "");
-  }, [profile]);
+  }, [profile, latestWeight]);
 
   const handleSave = async () => {
     setSaving(true);

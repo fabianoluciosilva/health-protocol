@@ -57,6 +57,30 @@ export function useBodyWeightLogs(limit = 20) {
   return { logs, loading, addLog, removeLog };
 }
 
+// Peso mais recente registrado (por data). Fonte de verdade para os "informes".
+export function useLatestWeight() {
+  const [weight, setWeight] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("body_weight_logs")
+        .select("weight_kg")
+        .order("log_date", { ascending: false })
+        .limit(1);
+      if (!active) return;
+      setWeight(data?.[0] ? Number(data[0].weight_kg) : null);
+      setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  return { weight, loading };
+}
+
 export function useBodyMeasurements(limit = 10) {
   const [logs, setLogs] = useState<BodyMeasurement[]>([]);
   const [loading, setLoading] = useState(true);

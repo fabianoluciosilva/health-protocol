@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, Settings } from "lucide-react";
 import { calculateProfile } from "@/lib/utils/profile";
+import { useLatestWeight } from "@/hooks/useBodyMetrics";
 import type { Profile } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils/cn";
 
@@ -13,8 +14,11 @@ interface Props {
 
 export default function ProfileSummary({ profile }: Props) {
   const [open, setOpen] = useState(false);
+  const { weight: latestWeight } = useLatestWeight();
+  // Peso de referência = último registro de evolução; fallback para o perfil.
+  const weight = latestWeight ?? Number(profile.weight_kg);
   const metrics = calculateProfile(
-    Number(profile.weight_kg),
+    weight,
     Number(profile.height_cm),
     new Date(profile.birth_date)
   );
@@ -28,7 +32,7 @@ export default function ProfileSummary({ profile }: Props) {
         <div className="text-sm text-gray-300">
           <span className="font-medium text-white">{metrics.age} anos</span>
           <span className="mx-1.5 text-gray-500">|</span>
-          <span>{Number(profile.weight_kg).toLocaleString("pt-BR")}kg</span>
+          <span>{weight.toLocaleString("pt-BR")}kg</span>
           <span className="mx-1.5 text-gray-500">|</span>
           <span>{(profile.height_cm / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}m</span>
           <span className="mx-1.5 text-gray-500">|</span>
