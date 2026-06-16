@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Upload, FileText, Check, AlertTriangle, Sparkles, X } from "lucide-react";
 
 interface Props {
-  onSuccess: () => void;
+  onSuccess: (examId?: string) => void;
 }
 
 export default function AddExamForm({ onSuccess }: Props) {
@@ -41,7 +41,7 @@ export default function AddExamForm({ onSuccess }: Props) {
 
       setResult({ markerCount: data.markerCount, examDate: data.examDate });
       setStatus("done");
-      setTimeout(onSuccess, 1500);
+      setTimeout(() => onSuccess(data.examId), 1500);
     } catch {
       setErrorMsg("Falha na conexão. Tente novamente.");
       setStatus("error");

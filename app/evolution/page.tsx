@@ -14,6 +14,7 @@ import CompositionCard from "@/components/evolution/CompositionCard";
 import CompositionImportForm from "@/components/evolution/CompositionImportForm";
 import LabTrendTable from "@/components/evolution/LabTrendTable";
 import ExamAnalysisCard from "@/components/evolution/ExamAnalysisCard";
+import AddExamForm from "@/components/exams/AddExamForm";
 import type { ExamAnalysis } from "@/lib/supabase/types";
 
 const TABS = [
@@ -48,11 +49,12 @@ export default function EvolutionPage() {
   const [analysisOverride, setAnalysisOverride] = useState<ExamAnalysis | null | undefined>(
     undefined
   );
+  const [showExamImport, setShowExamImport] = useState(false);
 
   const { profile, reload: reloadProfile } = useProfile();
   const { logs: weightLogs, loading: loadingWeight, addLog: addWeight, removeLog: removeWeight, reload: reloadWeight } = useBodyWeightLogs(30);
   const { logs: measurements, loading: loadingMeasures, addMeasurement, removeLog: removeMeasure, reload: reloadMeasures } = useBodyMeasurements(10);
-  const { entries, timelines, loading: loadingLabs } = useExamHistory();
+  const { entries, timelines, loading: loadingLabs, reload: reloadExams } = useExamHistory();
 
   const latestExam = entries[0]?.exam ?? null;
   const prevExam = entries[1]?.exam ?? null;
@@ -85,6 +87,15 @@ export default function EvolutionPage() {
       setAnalyzing(false);
     }
   }, []);
+
+  // Após importar um novo exame: recarrega o histórico e dispara a análise por IA
+  // automaticamente (a comparação com o exame anterior já é feita pela análise).
+  const handleExamImportSuccess = useCallback(async (examId?: string) => {
+    setShowExamImport(false);
+    await reloadExams();
+    setAnalysisOverride(undefined);
+    await runAnalysis(examId);
+  }, [reloadExams, runAnalysis]);
 
   // ── Formulário de peso ──────────────────────────────────────────────
   const [weightInput, setWeightInput] = useState("");
@@ -305,74 +316,69 @@ export default function EvolutionPage() {
       )}
 
       {tab === "labs" && (
-        loadingLabs ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-32 animate-pulse rounded-2xl bg-bg-card" />
-            ))}
-          </div>
-        ) : !latestExam ? (
-          <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
-            Nenhum exame cadastrado.
-          </div>
-        ) : (
-          <div className="space-y-4 pb-4">
-            {/* Cabeçalho dos exames sendo comparados */}
-            <div className="flex items-center justify-between rounded-2xl bg-bg-card px-4 py-3">
-              <div className="text-xs text-gray-400">
-                {prevExam ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-medium text-gray-300">{fmtDate(prevExam.exam_date)}</span>
-                    <ArrowRight className="h-3 w-3 text-gray-600" />
-                    <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
-                  </span>
-                ) : (
-                  <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
-                )}
-              </div>
-              <span className="text-[10px] text-gray-600">
-                {entries.length} {entries.length === 1 ? "exame" : "exames"}
-              </span>
+        <div className="space-y-4 pb-4">
+          {/* Importar novo exame médico (PDF) com IA */}
+          <button onClick={() => setShowExamImport((v) => !v)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent-purple/15 border border-accent-purple/30 py-3 text-sm font-semibold text-accent-purple active:scale-[0.98]">
+            <FileText className="h-4 w-4" /> Importar novo exame médico (PDF)
+          </button>
+
+          {showExamImport && <AddExamForm onSuccess={handleExamImportSuccess} />}
+
+          {loadingLabs ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-32 animate-pulse rounded-2xl bg-bg-card" />
+              ))}
             </div>
-
-            {/* Botão importar novo exame */}
-            {!prevExam && (
-              <Link
-                href="/medications/exams"
-                className="flex items-center gap-3 rounded-2xl border border-dashed border-accent-blue/40 bg-accent-blue/5 px-4 py-3 active:scale-[0.98] transition-transform"
-              >
-                <Plus className="h-4 w-4 shrink-0 text-accent-blue" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-accent-blue">Importar novo exame</p>
-                  <p className="text-[11px] text-gray-500">Upload do PDF → IA extrai todos os marcadores</p>
+          ) : !latestExam ? (
+            <div className="rounded-2xl bg-bg-card p-6 text-center text-sm text-gray-400">
+              Nenhum exame cadastrado. Importe o PDF acima para extrair os marcadores e gerar a análise.
+            </div>
+          ) : (
+            <>
+              {/* Cabeçalho dos exames sendo comparados */}
+              <div className="flex items-center justify-between rounded-2xl bg-bg-card px-4 py-3">
+                <div className="text-xs text-gray-400">
+                  {prevExam ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium text-gray-300">{fmtDate(prevExam.exam_date)}</span>
+                      <ArrowRight className="h-3 w-3 text-gray-600" />
+                      <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-white">{fmtDate(latestExam.exam_date)}</span>
+                  )}
                 </div>
-                <span className="text-xs text-gray-600">›</span>
-              </Link>
-            )}
-
-            {/* Análise por IA */}
-            <ExamAnalysisCard
-              examDate={latestExam.exam_date}
-              analysis={displayAnalysis}
-              analyzing={analyzing}
-              hasPrevExam={!!prevExam}
-              onAnalyze={() => {
-                setAnalysisOverride(undefined);
-                runAnalysis(latestExam.id);
-              }}
-            />
-
-            {/* Tabela de tendências — mostra todos os marcadores com histórico */}
-            {timelines.length > 0 && (
-              <div className="space-y-2">
-                <p className="px-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Evolução por marcador
-                </p>
-                <LabTrendTable timelines={timelines} />
+                <span className="text-[10px] text-gray-600">
+                  {entries.length} {entries.length === 1 ? "exame" : "exames"}
+                </span>
               </div>
-            )}
-          </div>
-        )
+
+              {/* Análise por IA */}
+              <ExamAnalysisCard
+                examDate={latestExam.exam_date}
+                analysis={displayAnalysis}
+                analyzing={analyzing}
+                hasPrevExam={!!prevExam}
+                onAnalyze={() => {
+                  setAnalysisOverride(undefined);
+                  runAnalysis(latestExam.id);
+                }}
+              />
+
+              {/* Tabela de tendências — mostra todos os marcadores com histórico */}
+              {timelines.length > 0 && (
+                <div className="space-y-2">
+                  <p className="px-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Evolução por marcador
+                  </p>
+                  <LabTrendTable timelines={timelines} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       <p className="pb-2 text-center text-[11px] text-gray-600">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LabExam, LabResult } from "@/lib/supabase/types";
 
 export interface ExamEntry {
@@ -21,24 +21,25 @@ export function useExamHistory() {
   const [entries, setEntries] = useState<ExamEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/exams");
-        if (!res.ok) { if (!cancelled) { setEntries([]); setLoading(false); } return; }
-        const { exams, results } = await res.json() as { exams: LabExam[]; results: LabResult[] };
-        const built: ExamEntry[] = exams.map((exam) => ({
-          exam,
-          results: results.filter((r) => r.exam_id === exam.id),
-        }));
-        if (!cancelled) { setEntries(built); setLoading(false); }
-      } catch {
-        if (!cancelled) { setEntries([]); setLoading(false); }
-      }
-    })();
-    return () => { cancelled = true; };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/exams");
+      if (!res.ok) { setEntries([]); setLoading(false); return; }
+      const { exams, results } = await res.json() as { exams: LabExam[]; results: LabResult[] };
+      const built: ExamEntry[] = exams.map((exam) => ({
+        exam,
+        results: results.filter((r) => r.exam_id === exam.id),
+      }));
+      setEntries(built);
+    } catch {
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const timelines = useMemo((): MarkerTimeline[] => {
     const map = new Map<string, MarkerTimeline>();
@@ -64,5 +65,5 @@ export function useExamHistory() {
     return Array.from(map.values());
   }, [entries]);
 
-  return { entries, timelines, loading };
+  return { entries, timelines, loading, reload: load };
 }
