@@ -22,18 +22,37 @@ export function useBodyWeightLogs(limit = 20) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Mantém profiles.weight_kg igual ao peso mais recente registrado, para que
+  // todos os "informes" (IMC, TMB, TDEE, calorias, proteína) recalculem sozinhos.
+  const syncProfileWeight = useCallback(async () => {
+    const { data } = await supabase
+      .from("body_weight_logs")
+      .select("weight_kg")
+      .order("log_date", { ascending: false })
+      .limit(1);
+    const latest = data?.[0];
+    if (!latest) return;
+    await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weight_kg: Number(latest.weight_kg) }),
+    });
+  }, [supabase]);
+
   const addLog = useCallback(async (weight_kg: number, log_date: string, notes?: string) => {
     await supabase.from("body_weight_logs").upsert(
       { log_date, weight_kg, notes: notes ?? null },
       { onConflict: "log_date" }
     );
     await load();
-  }, [supabase, load]);
+    await syncProfileWeight();
+  }, [supabase, load, syncProfileWeight]);
 
   const removeLog = useCallback(async (id: string) => {
     await supabase.from("body_weight_logs").delete().eq("id", id);
     await load();
-  }, [supabase, load]);
+    await syncProfileWeight();
+  }, [supabase, load, syncProfileWeight]);
 
   return { logs, loading, addLog, removeLog };
 }
@@ -56,8 +75,14 @@ export function useBodyMeasurements(limit = 10) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Upsert por (user_id, log_date): mesma data substitui; datas diferentes
+  // preservam o histórico para o comparativo automático.
   const addMeasurement = useCallback(async (entry: Omit<BodyMeasurement, "id" | "created_at">) => {
-    await supabase.from("body_measurements").insert(entry);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("body_measurements").upsert(
+      { ...entry, user_id: user?.id },
+      { onConflict: "user_id,log_date" }
+    );
     await load();
   }, [supabase, load]);
 

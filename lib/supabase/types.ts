@@ -250,6 +250,7 @@ export interface BodyWeightLog {
 
 export interface BodyMeasurement {
   id: string;
+  user_id?: string;
   log_date: string;
   waist_cm: number | null;
   chest_cm: number | null;

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Upload, AlertTriangle, TrendingDown, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw, LogOut, Pencil } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Trash2, Upload, AlertTriangle, Plus, FileText, Dumbbell, Salad, FlaskConical, Sparkles, RefreshCw, LogOut, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
@@ -10,6 +11,8 @@ import { useBodyWeightLogs, useBodyMeasurements } from "@/hooks/useBodyMetrics";
 import { useMedications } from "@/hooks/useMedications";
 import { calculateProfile } from "@/lib/utils/profile";
 import { cn } from "@/lib/utils/cn";
+import WeightChart from "@/components/evolution/WeightChart";
+import MeasurementsTable from "@/components/evolution/MeasurementsTable";
 import type { ProfileDocument, Medication, Frequency } from "@/lib/supabase/types";
 
 const TABS = [
@@ -40,40 +43,6 @@ function daysUntilNext(lastAt: string | null): number {
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return `${d.toString().padStart(2, "0")}/${m.toString().padStart(2, "0")}/${y}`;
-}
-
-// ─── Sparkline SVG ──────────────────────────────────────────────────────────
-
-function SimpleSparkline({ values, dates }: { values: number[]; dates: string[] }) {
-  if (values.length < 2) return null;
-  const W = 300, H = 54, pT = 8, pB = 16, pL = 4, pR = 4;
-  const cW = W - pL - pR, cH = H - pT - pB;
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = max - min || 1;
-  const toX = (i: number) => pL + (i / (values.length - 1)) * cW;
-  const toY = (v: number) => pT + cH - ((v - min) / range) * cH;
-  const pts = values.map((v, i) => `${toX(i)},${toY(v)}`).join(" ");
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 54 }}>
-      <polyline points={pts} fill="none" stroke="rgba(59,130,246,0.5)" strokeWidth="1.5" strokeLinejoin="round" />
-      {values.map((v, i) => (
-        <g key={i}>
-          <circle cx={toX(i)} cy={toY(v)} r="3" fill="#3b82f6" />
-          <text x={toX(i)} y={toY(v) - 5} textAnchor="middle" fontSize="7" fill="#60a5fa" fontWeight="700">
-            {v % 1 === 0 ? v : v.toFixed(1)}
-          </text>
-          <text x={toX(i)} y={H - 3} textAnchor="middle" fontSize="5.5" fill="rgba(156,163,175,0.7)">
-            {fmtDate(dates[i]).slice(0, 5)}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
 }
 
 // ─── Tab: Dados ──────────────────────────────────────────────────────────────
@@ -668,167 +637,31 @@ function DocsTab() {
 // ─── Tab: Evolução ────────────────────────────────────────────────────────────
 
 function EvolucaoTab() {
-  const { logs: weightLogs, loading: loadingW, addLog: addWeight, removeLog: removeWeight } = useBodyWeightLogs(30);
-  const { logs: measures, loading: loadingM, addMeasurement, removeLog: removeMeasure } = useBodyMeasurements(10);
-
-  const [weightInput, setWeightInput] = useState("");
-  const [weightDate, setWeightDate] = useState(todayISO());
-  const [savingW, setSavingW] = useState(false);
-  const [showMeasureForm, setShowMeasureForm] = useState(false);
-  const [mDate, setMDate] = useState(todayISO());
-  const [mWaist, setMWaist] = useState("");
-  const [mChest, setMChest] = useState("");
-  const [mHips, setMHips] = useState("");
-  const [mArm, setMArm] = useState("");
-  const [mThigh, setMThigh] = useState("");
-  const [savingM, setSavingM] = useState(false);
-
-  const handleAddWeight = async () => {
-    const w = parseFloat(weightInput);
-    if (!w || w < 30 || w > 300) return;
-    setSavingW(true);
-    await addWeight(w, weightDate);
-    setWeightInput(""); setSavingW(false);
-  };
-
-  const handleAddMeasure = async () => {
-    setSavingM(true);
-    await addMeasurement({
-      log_date: mDate,
-      waist_cm: mWaist ? Number(mWaist) : null,
-      chest_cm: mChest ? Number(mChest) : null,
-      hips_cm: mHips ? Number(mHips) : null,
-      arm_cm: mArm ? Number(mArm) : null,
-      thigh_cm: mThigh ? Number(mThigh) : null,
-      neck_cm: null,
-      notes: null,
-    });
-    setMWaist(""); setMChest(""); setMHips(""); setMArm(""); setMThigh("");
-    setShowMeasureForm(false); setSavingM(false);
-  };
-
-  const chronoWeights = useMemo(() => [...weightLogs].reverse(), [weightLogs]);
-
-  // delta from first to last
-  const weightDelta = chronoWeights.length >= 2
-    ? (chronoWeights[chronoWeights.length - 1].weight_kg - chronoWeights[0].weight_kg)
-    : null;
+  const { logs: weightLogs, loading: loadingW } = useBodyWeightLogs(30);
+  const { logs: measures, loading: loadingM } = useBodyMeasurements(10);
 
   return (
-    <div className="space-y-6">
-      {/* Weight section */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-semibold text-gray-300">Peso corporal (kg)</h2>
-          {weightDelta !== null && (
-            <span className={cn("flex items-center gap-1 text-xs font-medium", weightDelta < 0 ? "text-emerald-400" : "text-amber-400")}>
-              <TrendingDown className={cn("h-3.5 w-3.5", weightDelta >= 0 && "rotate-180")} />
-              {weightDelta > 0 ? "+" : ""}{weightDelta.toFixed(1)} kg
-            </span>
-          )}
-        </div>
+    <div className="space-y-4">
+      <Link href="/evolution"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-accent-blue py-3 text-sm font-semibold text-white active:scale-[0.98]">
+        <Plus className="h-4 w-4" /> Registrar peso e medidas
+      </Link>
+      <p className="px-1 text-[11px] leading-relaxed text-gray-600">
+        O cadastro de peso e medidas agora fica na tela <span className="text-gray-400">Evolução</span>.
+        O peso mais recente recalcula automaticamente todos os cálculos do perfil (IMC, TMB, TDEE, calorias e proteína).
+      </p>
 
-        {chronoWeights.length >= 2 && (
-          <div className="rounded-2xl bg-bg-card p-3">
-            <SimpleSparkline
-              values={chronoWeights.map((l) => Number(l.weight_kg))}
-              dates={chronoWeights.map((l) => l.log_date)}
-            />
-          </div>
-        )}
+      {loadingW ? (
+        <div className="h-40 animate-pulse rounded-2xl bg-bg-card" />
+      ) : (
+        <WeightChart logs={weightLogs} />
+      )}
 
-        {/* Add weight */}
-        <div className="flex gap-2">
-          <input type="date" value={weightDate} onChange={(e) => setWeightDate(e.target.value)}
-            className="w-36 rounded-xl bg-bg-card px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-blue" />
-          <input type="number" step="0.1" placeholder="Ex: 128.5"
-            value={weightInput} onChange={(e) => setWeightInput(e.target.value)}
-            className="flex-1 rounded-xl bg-bg-card px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-blue" />
-          <button onClick={handleAddWeight} disabled={savingW || !weightInput}
-            className="rounded-xl bg-accent-blue px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 active:scale-95">
-            {savingW ? "…" : "OK"}
-          </button>
-        </div>
-
-        {/* Weight history list */}
-        {!loadingW && weightLogs.length > 0 && (
-          <div className="space-y-1">
-            {weightLogs.slice(0, 7).map((l) => (
-              <div key={l.id} className="flex items-center gap-3 rounded-xl bg-bg-card px-4 py-2">
-                <span className="flex-1 text-xs text-gray-400">{fmtDate(l.log_date)}</span>
-                <span className="text-sm font-bold text-white">{Number(l.weight_kg).toFixed(1)} kg</span>
-                <button onClick={() => removeWeight(l.id)} className="rounded-lg p-1 text-gray-600 active:bg-bg-elevated">
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Measurements section */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-semibold text-gray-300">Medidas corporais (cm)</h2>
-          <button onClick={() => setShowMeasureForm((v) => !v)}
-            className="flex items-center gap-1 rounded-xl bg-bg-card px-3 py-1.5 text-xs font-medium text-gray-300 active:scale-95">
-            <Plus className="h-3.5 w-3.5" /> Registrar
-          </button>
-        </div>
-
-        {showMeasureForm && (
-          <div className="space-y-3 rounded-2xl bg-bg-card p-4">
-            <input type="date" value={mDate} onChange={(e) => setMDate(e.target.value)}
-              className="w-full rounded-xl bg-bg-elevated px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent-blue" />
-            <div className="grid grid-cols-2 gap-2">
-              {[["Cintura", mWaist, setMWaist], ["Peito", mChest, setMChest], ["Quadril", mHips, setMHips], ["Braço", mArm, setMArm], ["Coxa", mThigh, setMThigh]].map(([label, val, setter]) => (
-                <label key={label as string} className="block">
-                  <span className="mb-1 block text-[10px] uppercase text-gray-500">{label as string}</span>
-                  <input type="number" step="0.1" placeholder="cm" value={val as string}
-                    onChange={(e) => (setter as (v: string) => void)(e.target.value)}
-                    className="w-full rounded-lg bg-bg-elevated px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-blue" />
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowMeasureForm(false)} className="flex-1 rounded-xl bg-bg-elevated py-2 text-xs text-gray-400 active:scale-95">Cancelar</button>
-              <button onClick={handleAddMeasure} disabled={savingM}
-                className="flex-1 rounded-xl bg-accent-blue py-2 text-xs font-semibold text-white disabled:opacity-40 active:scale-95">
-                {savingM ? "Salvando…" : "Salvar"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!loadingM && measures.length > 0 && (
-          <div className="space-y-2">
-            {measures.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-bg-card p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-gray-300">{fmtDate(m.log_date)}</span>
-                  <button onClick={() => removeMeasure(m.id)} className="rounded-lg p-1 text-gray-600 active:bg-bg-elevated">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  {[["Cintura", m.waist_cm], ["Peito", m.chest_cm], ["Quadril", m.hips_cm], ["Braço", m.arm_cm], ["Coxa", m.thigh_cm]].map(([l, v]) =>
-                    v != null ? (
-                      <div key={l as string} className="rounded-lg bg-bg-elevated px-2 py-1.5 text-center">
-                        <div className="text-[10px] text-gray-500">{l as string}</div>
-                        <div className="font-semibold text-white">{Number(v).toFixed(1)}</div>
-                      </div>
-                    ) : null
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!loadingM && measures.length === 0 && !showMeasureForm && (
-          <p className="text-center text-sm text-gray-500">Nenhuma medida registrada.</p>
-        )}
-      </section>
+      {loadingM ? (
+        <div className="h-40 animate-pulse rounded-2xl bg-bg-card" />
+      ) : (
+        <MeasurementsTable logs={measures} />
+      )}
     </div>
   );
 }
